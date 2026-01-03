@@ -339,10 +339,15 @@ def close_db(exception):
 
 def init_db():
     conn = sqlite3.connect(DATABASE)
+    conn.execute("DROP TABLE IF EXISTS history")
     conn.execute("""
-        CREATE TABLE IF NOT EXISTS history (
+        CREATE TABLE history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            data TEXT,
+            area_m2 REAL,
+            system_type TEXT,
+            crop TEXT,
+            country TEXT,
+            savings REAL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
