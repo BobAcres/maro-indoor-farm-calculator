@@ -11,7 +11,8 @@ from flask import (
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 
-DATABASE = "farm_calc.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE = os.path.join(BASE_DIR, "farm_calc.db")
 SOLAR_SAVINGS_RATE = 0.20  # 20%
 ADMIN_KEY = os.environ.get("ADMIN_KEY")
 
@@ -323,16 +324,15 @@ def estimate_capex_per_m2_display(setup_level, country_code,
 #  DB helper funcs
 # ================
 def get_db():
-    db = getattr(g, "_database", None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row
-    return db
+    if "db" not in g:
+        g.db = sqlite3.connect(DATABASE)
+        g.db.row_factory = sqlite3.Row
+    return g.db
 
 
 @app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, "_database", None)
+def close_db(exception):
+    db = g.pop("db", None)
     if db is not None:
         db.close()
 
@@ -714,8 +714,15 @@ def admin_history():
     if not ADMIN_KEY or key != ADMIN_KEY:
         abort(403)
 
-    return "Admin history route works"
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT * FROM history ORDER BY id DESC"
+    ).fetchall()
 
+    return render_template("admin_history.html", history=rows)
+
+with app.app_context():
+    init_db()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
