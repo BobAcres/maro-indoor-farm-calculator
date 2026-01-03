@@ -9,11 +9,11 @@ from flask import (
 )
 
 app = Flask(__name__)
-app.secret_key = "CHANGE_THIS_TO_A_RANDOM_SECRET_KEY"  # required for session
+app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 
 DATABASE = "farm_calc.db"
 SOLAR_SAVINGS_RATE = 0.20  # 20%
-ADMIN_KEY = os.environ.get("ADMIN_KEY", "CHANGE_ME_ADMIN_KEY")
+ADMIN_KEY = os.environ.get("ADMIN_KEY")
 
 # =========================
 #  CROP YIELD + NUTRIENTS
@@ -709,25 +709,15 @@ def results_page():
 
 @app.route("/admin/history")
 def admin_history():
-    """
-    Private history view.
-    Access: /admin/history?key=YOUR_SECRET
-    """
     key = request.args.get("key", "")
 
-    if key != ADMIN_KEY:
+    if not ADMIN_KEY or key != ADMIN_KEY:
         abort(403)
 
     init_db()
     conn = get_db()
     cur = conn.execute(
-        """
-        SELECT id, created_at, country_code, currency_code, crop,
-               system_type, area_m2, annual_yield, annual_profit
-        FROM calculations
-        ORDER BY id DESC
-        LIMIT 50
-        """
+        "SELECT * FROM history ORDER BY created_at DESC"
     )
     history = cur.fetchall()
 
