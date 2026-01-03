@@ -1,0 +1,395 @@
+/* =========================
+   Global / base
+   ========================= */
+
+:root {
+  --maro-bg-dark: #020617;
+  --maro-bg-deep: #022c22;
+  --maro-bg-accent: #0f766e;
+  --maro-green: #22c55e;
+  --maro-green-soft: #bbf7d0;
+  --maro-gold: #fbbf24;
+  --maro-text: #e5e7eb;
+  --maro-muted: #9ca3af;
+  --maro-border: #1f2937;
+  --maro-error: #f97373;
+  --radius-lg: 20px;
+  --radius-md: 12px;
+  --shadow-strong: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --blur-glass: 18px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial,
+    sans-serif;
+  color: var(--maro-text);
+  background: radial-gradient(circle at top left, #16a34a 0, transparent 50%),
+    radial-gradient(circle at bottom right, #0ea5e9 0, transparent 55%),
+    linear-gradient(
+      135deg,
+      var(--maro-bg-dark) 0%,
+      var(--maro-bg-deep) 60%,
+      #020617 100%
+    );
+  background-attachment: fixed;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 32px 12px;
+}
+
+/* =========================
+   Main application card
+   ========================= */
+
+.app-card {
+  position: relative;
+  width: min(1080px, 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(15, 23, 42, 0.95),
+    rgba(6, 78, 59, 0.92)
+  );
+  border-radius: var(--radius-lg);
+  padding: 22px 30px 26px;
+  box-shadow: var(--shadow-strong);
+  color: var(--maro-text);
+  overflow: hidden;
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+/* Optional decorative image in the corner */
+.app-card::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  bottom: -80px;
+  width: 260px;
+  height: 260px;
+  opacity: 0.16;
+  background-image: url("img/maro-leaves.png");
+  background-size: cover;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+/* Top-left glow */
+.app-card::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  left: -40px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(
+    circle at center,
+    rgba(56, 189, 248, 0.45),
+    transparent 70%
+  );
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* =========================
+   Header / brand
+   ========================= */
+
+.app-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+  z-index: 1;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  object-fit: contain;
+  padding: 4px;
+  background: radial-gradient(circle at 20% 20%, #fef9c3 0, transparent 60%),
+    radial-gradient(circle at 80% 80%, #4ade80 0, transparent 65%),
+    linear-gradient(135deg, #0f766e, #15803d);
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.9), 0 10px 22px rgba(0, 0, 0, 0.65);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brand-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fefce8;
+}
+
+.brand-tagline {
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--maro-green-soft);
+}
+
+.brand-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--maro-muted);
+}
+
+.meta-pill {
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: radial-gradient(
+    circle at top left,
+    rgba(74, 222, 128, 0.25),
+    transparent 70%
+  );
+}
+
+/* Centered form column */
+.form-body {
+  max-width: 520px;
+  margin: 8px auto 0 auto;
+}
+
+/* =========================
+   Typography & sections
+   ========================= */
+
+.section-title {
+  margin-top: 6px;
+  margin-bottom: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  font-size: 0.92rem;
+  color: #e5e7eb;
+}
+
+small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: var(--maro-muted);
+}
+
+section {
+  margin-top: 8px;
+}
+
+/* =========================
+   Form controls
+   ========================= */
+
+/* Full-width text inputs and selects */
+input[type="text"],
+select {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 11px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  font-size: 0.9rem;
+  background: rgba(15, 23, 42, 0.88);
+  color: var(--maro-text);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease,
+    background-color 0.16s ease, transform 0.08s ease;
+}
+
+/* Numeric inputs: ~10 characters wide */
+input[type="number"] {
+  width: 10ch;
+  max-width: 10ch;
+  padding: 8px 11px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  font-size: 0.9rem;
+  background: rgba(15, 23, 42, 0.88);
+  color: var(--maro-text);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease,
+    background-color 0.16s ease, transform 0.08s ease;
+}
+
+/* Shared focus style */
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+  outline: none;
+  border-color: var(--maro-green);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.7),
+    0 8px 20px rgba(16, 185, 129, 0.45);
+  background: rgba(15, 23, 42, 1);
+  transform: translateY(-1px);
+}
+
+/* Keep .short-input but no width override */
+.short-input {
+  width: 100%;
+  max-width: 100%;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--maro-green);
+}
+
+/* =========================
+   2x2 checkbox grid
+   ========================= */
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin-top: 6px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #e5e7eb;
+}
+
+.checkbox-item input[type="checkbox"] {
+  margin: 0;
+}
+
+/* =========================
+   Error message
+   ========================= */
+
+.error {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.7);
+  color: #fecaca;
+  font-size: 0.88rem;
+}
+
+/* =========================
+   Buttons
+   ========================= */
+
+button,
+#calcBtn {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 22px;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #022c22;
+  background: linear-gradient(135deg, #bbf7d0, #22c55e);
+  box-shadow: 0 16px 30px rgba(34, 197, 94, 0.55),
+    0 0 0 1px rgba(21, 128, 61, 0.8);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.1s ease;
+}
+
+button:hover,
+#calcBtn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 20px 40px rgba(34, 197, 94, 0.65),
+    0 0 0 1px rgba(21, 128, 61, 0.9);
+}
+
+button:active,
+#calcBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.5),
+    0 0 0 1px rgba(21, 128, 61, 0.9);
+}
+
+/* =========================
+   Utility
+   ========================= */
+
+.compact-row {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+/* Scrollbar inside card if needed */
+.app-card::-webkit-scrollbar {
+  width: 8px;
+}
+.app-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+.app-card::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.9);
+  border-radius: 999px;
+}
+.app-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.95);
+}
+
+/* Mobile tweaks */
+@media (max-width: 720px) {
+  body {
+    padding: 18px 8px;
+  }
+
+  .app-card {
+    padding: 18px 18px 20px;
+  }
+
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .form-body {
+    max-width: 100%;
+  }
+
+  .checkbox-grid {
+    grid-template-columns: 1fr;
+  }
+}

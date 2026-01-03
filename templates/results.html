@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Indoor Farm Calculator - Results</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="app-card">
+      <header class="app-header">
+        <div class="brand">
+          <img
+            src="{{ url_for('static', filename='palmtiny.png') }}"
+            alt="Maro logo"
+            class="brand-logo"
+          />
+          <div class="brand-text">
+            <div class="brand-name">Maro</div>
+            <div class="brand-tagline">Indoor Farm Calculator</div>
+          </div>
+        </div>
+        <div class="brand-meta">
+          <span class="meta-pill">Controlled Environment Agriculture</span>
+        </div>
+      </header>
+
+      <div class="compact-row" style="margin-bottom: 10px">
+        <a href="{{ url_for('index') }}" style="font-size: 0.9rem">
+          &#8592; Back to input
+        </a>
+      </div>
+
+      <!-- MAIN RESULTS TABLE -->
+      <table
+        class="results-table"
+        style="
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.9rem;
+          margin-top: 8px;
+        "
+      >
+        <tbody>
+          <!-- Header row -->
+          <tr style="background: #000000">
+            <th
+              colspan="2"
+              style="
+                padding: 6px 8px;
+                text-align: left;
+                border: 1px solid #ffffff;
+              "
+            >
+              Results ({{ results.currency_code }})
+            </th>
+          </tr>
+
+          <!-- Assumed data & production -->
+          <tr>
+            <th
+              colspan="2"
+              style="
+                padding: 4px 8px;
+                text-align: left;
+                border: 1px solid #e5e7eb;
+                background: #000703;
+              "
+            >
+              Assumed data &amp; production
+            </th>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Greenhouse area
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.0f"|format(results.area) }} m²
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">Crop</td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ results.crop }}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              System type
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ results.system_type }}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Assumed plants per m²
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.plants_per_m2) }}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Assumed crops per year
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.crops_per_year) }}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Assumed yield per m² per crop
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.1f"|format(results.yield_per_m2_per_crop) }} kg/m²/crop
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Total plants
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.0f"|format(results.plants) }}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Annual yield
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.0f"|format(results.annual_yield) }} kg
+            </td>
+          </tr>
+
+          <!-- Nutrient requirements -->
+          <tr>
+            <th
+              colspan="2"
+              style="
+                padding: 4px 8px;
+                text-align: left;
+                border: 1px solid #e5e7eb;
+                background: #000000;
+              "
+            >
+              Nutrient requirements (estimated)
+            </th>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Nutrient per m² per crop
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.3f"|format(results.nutrient_per_m2_per_crop) }} kg
+              nutrients/m²/crop
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Nutrient per plant per crop
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.3f"|format(results.nutrient_per_plant_per_crop) }} kg
+              nutrients/plant/crop
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Whole-farm nutrient per crop (one cycle)
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.1f"|format(results.nutrient_per_crop_total) }} kg nutrients
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Total annual nutrient requirement (whole farm)
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.1f"|format(results.annual_nutrient_total) }} kg
+              nutrients/year
+            </td>
+          </tr>
+
+          <!-- Production costs -->
+          <tr>
+            <th
+              colspan="2"
+              style="
+                padding: 4px 8px;
+                text-align: left;
+                border: 1px solid #e5e7eb;
+                background: #000000;
+              "
+            >
+              Production costs
+            </th>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Gross annual production cost
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.gross_production_cost) }} {{
+              results.currency_code }}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Solar cost savings ({{
+              "%.0f"|format(results.SOLAR_SAVINGS_RATE*100) }}% if solar is
+              used)
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.solar_savings) }} {{
+              results.currency_code }}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Net annual production cost
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.net_production_cost) }} {{
+              results.currency_code }}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Net production cost per kg
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {% if results.cost_per_kg is none %} N/A {% else %} {{
+              "%.3f"|format(results.cost_per_kg) }} {{ results.currency_code
+              }}/kg {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Net production cost per m² per year
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.cost_per_m2_per_year) }} {{
+              results.currency_code }}/m²/year
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Net production cost per plant per year
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.cost_per_plant_per_year) }} {{
+              results.currency_code }}/plant/year
+            </td>
+          </tr>
+
+          <!-- Revenue -->
+          <tr>
+            <th
+              colspan="2"
+              style="
+                padding: 4px 8px;
+                text-align: left;
+                border: 1px solid #e5e7eb;
+                background: #000000;
+              "
+            >
+              Revenue
+            </th>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Effective selling price per kg
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.3f"|format(results.price_per_kg) }} {{ results.currency_code
+              }}/kg
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Annual revenue
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.annual_revenue) }} {{
+              results.currency_code }}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Revenue per m² per year
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.revenue_per_m2_per_year) }} {{
+              results.currency_code }}/m²/year
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Revenue per plant per year
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.revenue_per_plant_per_year) }} {{
+              results.currency_code }}/plant/year
+            </td>
+          </tr>
+
+          <!-- Setup cost -->
+          <tr>
+            <th
+              colspan="2"
+              style="
+                padding: 4px 8px;
+                text-align: left;
+                border: 1px solid #e5e7eb;
+                background: #000000;
+              "
+            >
+              Setup cost
+            </th>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Greenhouse level
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ results.setup_label }}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Setup cost per m²
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.capex_per_m2) }} {{ results.currency_code
+              }}/m²
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Total setup cost
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.total_setup_cost) }} {{
+              results.currency_code }}
+            </td>
+          </tr>
+
+          <!-- Profit -->
+          <tr>
+            <th
+              colspan="2"
+              style="
+                padding: 4px 8px;
+                text-align: left;
+                border: 1px solid #e5e7eb;
+                background: #000000;
+              "
+            >
+              Profit
+            </th>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Annual profit
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.annual_profit) }} {{
+              results.currency_code }}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Profit per kg
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {% if results.profit_per_kg is none %} N/A {% else %} {{
+              "%.3f"|format(results.profit_per_kg) }} {{ results.currency_code
+              }}/kg {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Profit per m² per year
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.profit_per_m2_per_year) }} {{
+              results.currency_code }}/m²/year
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Profit per plant per year
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {{ "%.2f"|format(results.profit_per_plant_per_year) }} {{
+              results.currency_code }}/plant/year
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              Simple payback (setup cost / annual profit)
+            </td>
+            <td style="padding: 4px 8px; border: 1px solid #e5e7eb">
+              {% if results.simple_payback_years is none %} N/A (no profit) {%
+              else %} {{ "%.1f"|format(results.simple_payback_years) }} years {%
+              endif %}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
