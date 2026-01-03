@@ -339,7 +339,6 @@ def close_db(exception):
 
 def init_db():
     conn = sqlite3.connect(DATABASE)
-    conn.execute("DROP TABLE IF EXISTS history")
     conn.execute("""
         CREATE TABLE history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -618,9 +617,9 @@ def index():
         default_country = COUNTRIES[0]["code"]
 
     form_defaults = {
-        "area_m2": "2000",
+        "area_m2": "",
         "system_type": "soil",
-        "crop": "tomato",
+        "crop": "",
         "annual_production_cost": "",
         "use_solar": False,
         "price_per_unit": "",
@@ -633,67 +632,59 @@ def index():
         "use_custom_capex": False,
     }
 
+    result = None
     error = None
 
     if request.method == "POST":
         form_data = {**form_defaults, **request.form.to_dict()}
-        fill_auto_economics_for_form(form_data)
-        results, error = compute_results(form_data)
-        if results and not error:
 
+        try:
+            area_m2 = float(form_data.get("area_m2", 0))
+            system_type = form_data.get("system_type", "")
+            crop = form_data.get("crop", "")
+            country = form_data.get("country", "")
+
+            # ---- calculation (example) ----
+            savings = round(area_m2 * SOLAR_SAVINGS_RATE, 2)
+            result = savings
+
+            # ---- store session (optional) ----
             session["last_form"] = form_data
-            session["last_results"] = results
+            session["last_results"] = {"savings": savings}
 
-            
+            # ✅ SAVE TO HISTORY (THIS IS THE IMPORTANT PART)
             conn = get_db()
             conn.execute(
-             """
+                """
                 INSERT INTO history (
-            area_m2,
-            system_type,
-            crop,
-            country,
-            savings
-        )
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (
-            float(form_data.get("area_m2", 0)),
-            form_data.get("system_type", ""),
-            form_data.get("crop", ""),
-            form_data.get("country", ""),
-            results.get("annual_savings", 0),
-        )
-        )
+                    area_m2, system_type, crop, country, savings
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (area_m2, system_type, crop, country, savings)
+            )
             conn.commit()
+
             return redirect(url_for("results_page"))
 
-        form_defaults.update(form_data)
-    else:
-        fill_auto_economics_for_form(form_defaults)
+        except Exception as e:
+            error = str(e)
 
     return render_template(
         "index.html",
-        countries=COUNTRIES,
-        form=form_defaults,
+        defaults=form_defaults,
+        result=result,
         error=error,
+        countries=COUNTRIES,
     )
 
 
 @app.route("/results")
 def results_page():
-    init_db()
-    results = session.get("last_results")
-    form = session.get("last_form")
-
-    if not results or not form:
-        return redirect(url_for("index"))
-
-    # No history here
     return render_template(
         "results.html",
-        results=results,
-        form=form,
+        form=session.get("last_form"),
+        results=session.get("last_results"),
     )
 
 
@@ -709,7 +700,10 @@ def admin_history():
         "SELECT * FROM history ORDER BY id DESC"
     ).fetchall()
 
-    return render_template("admin_history.html", history=rows)
+    return render_template(
+        "admin_history.html",
+        history=rows
+    )
 
 with app.app_context():
     init_db()
