@@ -353,6 +353,7 @@ button:active,
 .compact-row {
   margin-top: 4px;
   margin-bottom: 4px;
+  color: white;
 }
 
 /* Scrollbar inside card if needed */
