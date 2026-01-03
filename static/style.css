@@ -350,10 +350,15 @@ button:active,
    Utility
    ========================= */
 
-.compact-row {
-  margin-top: 4px;
-  margin-bottom: 4px;
-  color: white;
+.compact-row a {
+  color: var(--maro-green-soft);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.compact-row a:hover {
+  color: #ffffff;
+  text-decoration: underline;
 }
 
 /* Scrollbar inside card if needed */
