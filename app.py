@@ -606,7 +606,7 @@ def compute_results(form):
 # =============
 @app.route("/", methods=["GET", "POST"])
 def index():
-    init_db()
+    
 
     default_country = ""
     if not any(c["code"] == "" for c in COUNTRIES) and COUNTRIES:
@@ -635,37 +635,31 @@ def index():
         fill_auto_economics_for_form(form_data)
         results, error = compute_results(form_data)
         if results and not error:
+
             session["last_form"] = form_data
             session["last_results"] = results
 
+            
             conn = get_db()
             conn.execute(
-                """
-                INSERT INTO calculations (
-                    created_at,
-                    country_code,
-                    currency_code,
-                    crop,
-                    system_type,
-                    area_m2,
-                    annual_yield,
-                    annual_revenue,
-                    annual_profit
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    datetime.datetime.utcnow().isoformat(),
-                    results["country_code"],
-                    results["currency_code"],
-                    results["crop"],
-                    results["system_type"],
-                    results["area"],
-                    results["annual_yield"],
-                    results["annual_revenue"],
-                    results["annual_profit"],
-                ),
-            )
+             """
+                INSERT INTO history (
+            area_m2,
+            system_type,
+            crop,
+            country,
+            savings
+        )
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            float(form_data.get("area_m2", 0)),
+            form_data.get("system_type", ""),
+            form_data.get("crop", ""),
+            form_data.get("country", ""),
+            results.get("annual_savings", 0),
+        )
+        )
             conn.commit()
             return redirect(url_for("results_page"))
 
