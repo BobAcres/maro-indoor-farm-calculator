@@ -338,25 +338,16 @@ def close_db(exception):
 
 
 def init_db():
-    conn = get_db()
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS calculations (
+    conn = sqlite3.connect(DATABASE)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            created_at TEXT NOT NULL,
-            country_code TEXT,
-            currency_code TEXT,
-            crop TEXT,
-            system_type TEXT,
-            area_m2 REAL,
-            annual_yield REAL,
-            annual_revenue REAL,
-            annual_profit REAL
+            data TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-        """
-    )
+    """)
     conn.commit()
-
+    conn.close()
 
 # ==========================
 #  Country / currency lookup
