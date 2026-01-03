@@ -714,14 +714,7 @@ def admin_history():
     if not ADMIN_KEY or key != ADMIN_KEY:
         abort(403)
 
-    init_db()
-    conn = get_db()
-    cur = conn.execute(
-        "SELECT * FROM history ORDER BY created_at DESC"
-    )
-    history = cur.fetchall()
-
-    return render_template("admin_history.html", history=history)
+    return "Admin history route works"
 
 
 if __name__ == "__main__":
