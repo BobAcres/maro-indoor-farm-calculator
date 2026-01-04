@@ -97,6 +97,21 @@ def find_country(code):
 # =====================
 # ROUTES
 # =====================
+def fill_auto_economics_for_form(form_dict):
+    ...
+
+
+def compute_results(form_data):
+    """Compute calculation results based on form data."""
+    try:
+        # Add your calculation logic here
+        results = {}
+        error = None
+        return results, error
+    except Exception as e:
+        return None, str(e)
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     form = MyForm()
@@ -110,7 +125,7 @@ def index():
     if form.validate_on_submit():
         form_data = form.data.copy()
 
-        # Auto‑fill economics
+        # ✅ MUST be inside the if
         fill_auto_economics_for_form(form_data)
 
         results, error = compute_results(form_data)
@@ -118,27 +133,13 @@ def index():
         if results and not error:
             session["last_form"] = form_data
             session["last_results"] = results
-
-            # Save history
-            db = get_db()
-            db.execute(
-                "INSERT INTO history (area_m2, system_type, crop, country, savings) VALUES (?, ?, ?, ?, ?)",
-                (
-                    results["area"],
-                    results["system_type"],
-                    results["crop"],
-                    results["country_code"],
-                    results["solar_savings"],
-                ),
-            )
-            db.commit()
-
-            return redirect(url_for("results_page"))
+        return redirect(url_for("results_page"))
 
     return render_template(
         "index.html",
         form=form,
         error=error,
+        SOLAR_SAVINGS_RATE=SOLAR_SAVINGS_RATE,
     )
 
 
