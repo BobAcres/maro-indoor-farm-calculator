@@ -1,156 +1,229 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Maro – Indoor Farm Calculator</title>
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
-    />
-  </head>
+<head>
+  <meta charset="UTF-8">
+  <title>Maro – Indoor Farm Calculator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
 
-  <body>
-    <div class="app-card">
-      <!-- Header -->
-      <header class="app-header">
-        <div class="brand">
-          <img
-            src="{{ url_for('static', filename='palmtiny.png') }}"
-            alt="Maro logo"
-            class="brand-logo"
-          />
-          <div class="brand-text">
-            <div class="brand-name">Maro</div>
-            <div class="brand-tagline">Indoor Farm Calculator</div>
-          </div>
-        </div>
-        <div class="brand-meta">
-          <span class="meta-pill">Controlled Environment Agriculture</span>
-        </div>
-      </header>
-
-      <!-- Form body -->
-      <div class="form-body">
-        {% if error %}
-        <div class="error">{{ error }}</div>
-        {% endif %}
-
-        <form method="POST" action="{{ url_for('calculate') }}">
-          <!-- LOCATION -->
-          <section>
-            <label>
-              Country
-              <select name="country" required>
-                <option value="">Select country</option>
-                {% for c in countries %}
-                <option value="{{ c.code }}">{{ c.name }}</option>
-                {% endfor %}
-              </select>
-            </label>
-          </section>
-
-          <!-- FARM SETUP -->
-          <section>
-            <label>
-              Greenhouse area (m²)
-              <input
-                type="number"
-                name="area_m2"
-                step="1"
-                min="1"
-                required
-                class="short-input"
-              />
-            </label>
-
-            <label>
-              Farm system type
-              <select name="system_type" required class="short-input">
-                {% for value, label in system_types %}
-                <option value="{{ value }}">{{ label }}</option>
-                {% endfor %}
-              </select>
-            </label>
-
-            <label>
-              Crop selection
-              <select name="crop" required class="short-input">
-                {% for value, label in crops %}
-                <option value="{{ value }}">{{ label }}</option>
-                {% endfor %}
-              </select>
-            </label>
-          </section>
-
-          <!-- OPTIONS -->
-          <section>
-            <h2 class="section-title">Options</h2>
-
-            <div class="checkbox-grid">
-              <label class="checkbox-item">
-                <input type="checkbox" name="use_solar" />
-                <span>Use solar</span>
-              </label>
-
-              <label class="checkbox-item">
-                <input type="checkbox" id="use_custom_production_cost" />
-                <span>Edit annual production cost</span>
-              </label>
-
-              <label class="checkbox-item">
-                <input type="checkbox" id="use_custom_price" />
-                <span>Edit selling price</span>
-              </label>
-            </div>
-          </section>
-
-          <!-- OPTIONAL INPUTS -->
-          <section>
-            <div id="production_cost_block" style="display: none">
-              <label>
-                Annual production cost
-                <input
-                  type="number"
-                  name="annual_production_cost"
-                  step="0.01"
-                />
-              </label>
-            </div>
-
-            <div id="price_block" style="display: none">
-              <label>
-                Selling price per kg
-                <input type="number" name="price_per_unit" step="0.01" />
-              </label>
-            </div>
-          </section>
-
-          <div style="margin-top: 14px; text-align: center">
-            <button type="submit" id="calcBtn">Calculate</button>
-          </div>
-        </form>
+<div class="app-card">
+  <!-- Header with Maro logo and name -->
+  <header class="app-header">
+    <div class="brand">
+      <img src="{{ url_for('static', filename='/palmtiny.png') }}"
+           alt="Maro logo"
+           class="brand-logo">
+      <div class="brand-text">
+        <div class="brand-name">Maro</div>
+        <div class="brand-tagline">Indoor Farm Calculator</div>
       </div>
     </div>
+    <div class="brand-meta">
+      <span class="meta-pill">Controlled Environment Agriculture</span>
+    </div>
+  </header>
 
-    <!-- Toggle optional fields -->
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        function bindToggle(checkboxId, blockId) {
-          const cb = document.getElementById(checkboxId);
-          const block = document.getElementById(blockId);
-          if (!cb || !block) return;
+  <!-- Centered form body -->
+  <div class="form-body">
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
 
-          function update() {
-            block.style.display = cb.checked ? "block" : "none";
-          }
+    <form method="post">
 
-          cb.addEventListener("change", update);
-          update();
-        }
+      <!-- LOCATION & CURRENCY -->
+      <section>
+        <h2 class="section-title">Location &amp; Currency</h2>
 
-        bindToggle("use_custom_production_cost", "production_cost_block");
-        bindToggle("use_custom_price", "price_block");
-      });
-    </script>
-  </body>
+        <label>
+          Country
+          <select name="country" class="short-input">
+            {% for c in countries %}
+              <option value="{{ c.code }}"
+                      {% if form.country == c.code %}selected{% endif %}>
+                {{ c.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>
+          Currency override (optional, e.g. USD, CAD, NGN)
+          <input type="text"
+                 name="currency_override"
+                 value="{{ form.currency_override or '' }}"
+                 placeholder="Leave blank to use country's currency"
+                 class="short-input"
+                 maxlength="15">
+        </label>
+      </section>
+
+      <!-- GREENHOUSE & CROP -->
+      <section>
+        <h2 class="section-title">Greenhouse &amp; Crop</h2>
+
+        <label>
+          Greenhouse area (m²)
+          <input type="number"
+                 name="area_m2"
+                 value="{{ form.area_m2 }}"
+                 step="1"
+                 class="short-input"
+                 maxlength="15">
+        </label>
+
+        <label>
+          System type
+          <select name="system_type" class="short-input">
+            <option value="soil"       {% if form.system_type == 'soil' %}selected{% endif %}>Greenhouse Soil</option>
+            <option value="soilless"   {% if form.system_type == 'soilless' %}selected{% endif %}>Greenhouse Soilless</option>
+            <option value="vertical"   {% if form.system_type == 'vertical' %}selected{% endif %}>Vertical</option>
+            <option value="hydroponics"{% if form.system_type == 'hydroponics' %}selected{% endif %}>Hydroponics</option>
+            <option value="aeroponics" {% if form.system_type == 'aeroponics' %}selected{% endif %}>Aeroponics</option>
+          </select>
+        </label>
+
+        <label>
+          Crop
+          <select name="crop" class="short-input">
+            <option value="tomato"         {% if form.crop == 'tomato' %}selected{% endif %}>Tomato</option>
+            <option value="pepper"         {% if form.crop == 'pepper' %}selected{% endif %}>Pepper</option>
+            <option value="cucumber"       {% if form.crop == 'cucumber' %}selected{% endif %}>Cucumber</option>
+            <option value="strawberry"     {% if form.crop == 'strawberry' %}selected{% endif %}>Strawberry</option>
+            <option value="lettuce"        {% if form.crop == 'lettuce' %}selected{% endif %}>Lettuce</option>
+            <option value="spinach"        {% if form.crop == 'spinach' %}selected{% endif %}>Spinach</option>
+            <option value="potato"         {% if form.crop == 'potato' %}selected{% endif %}>Potato</option>
+            <option value="fluted_pumpkin" {% if form.crop == 'fluted_pumpkin' %}selected{% endif %}>Fluted pumpkin</option>
+            <option value="basil"          {% if form.crop == 'basil' %}selected{% endif %}>Basil</option>
+            <option value="water_leaf"     {% if form.crop == 'water_leaf' %}selected{% endif %}>Water leaf</option>
+            <option value="cannabis"       {% if form.crop == 'cannabis' %}selected{% endif %}>Cannabis</option>
+          </select>
+        </label>
+        <label>
+          Greenhouse level (technology)
+          <select name="setup_level">
+            <option value="local"    {% if form.setup_level == 'local' %}selected{% endif %}>Local</option>
+            <option value="standard" {% if form.setup_level == 'standard' %}selected{% endif %}>Standard</option>
+            <option value="hightech" {% if form.setup_level == 'hightech' %}selected{% endif %}>Hi-tech</option>
+          </select>
+        </label>
+      </section>
+
+      <!-- OPTIONS GRID: 4 CHECKBOXES IN 2x2 LAYOUT -->
+      <section>
+        <h2 class="section-title">Options</h2>
+
+        <div class="checkbox-grid">
+          <label class="checkbox-item">
+            <input type="checkbox"
+                   id="use_custom_production_cost"
+                   name="use_custom_production_cost"
+                   {% if form.use_custom_production_cost %}checked{% endif %}>
+            <span>Custom annual production cost</span>
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox"
+                   id="use_solar"
+                   name="use_solar"
+                   {% if form.use_solar %}checked{% endif %}>
+            <span>Use solar</span>
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox"
+                   id="use_custom_price"
+                   name="use_custom_price"
+                   {% if form.use_custom_price %}checked{% endif %}>
+            <span>Custom selling price</span>
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox"
+                   id="use_custom_capex"
+                   name="use_custom_capex"
+                   {% if form.use_custom_capex %}checked{% endif %}>
+            <span>Custom setup cost per m²</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- PRODUCTION COST & PRICE (TEXTBOXES BELOW GRID) -->
+      <section>
+
+        <!-- Production cost input (hidden unless checkbox checked) -->
+        <div id="production_cost_block"
+             style="{% if not form.use_custom_production_cost %}display:none;{% endif %}">
+          <label>
+            Annual production cost
+            <input type="number"
+                   name="annual_production_cost"
+                   value="{{ form.annual_production_cost }}"
+                   step="0.01">
+          </label>
+          <small>
+            If left blank or 0, the calculator estimates cost from farm size and system type.
+          </small>
+        </div>
+
+        <!-- Selling price input (hidden unless checkbox checked) -->
+        <div id="price_block"
+             style="{% if not form.use_custom_price %}display:none;{% endif %}">
+          <label>
+            Selling price per unit (kg)
+            <input type="number"
+                   name="price_per_unit"
+                   value="{{ form.price_per_unit }}"
+                   step="0.01">
+          </label>
+        </div>
+      </section>
+
+      <!-- SETUP COST -->
+      <section>
+
+        <!-- CAPEX input (hidden unless checkbox checked) -->
+        <div id="capex_block"
+             style="{% if not form.use_custom_capex %}display:none;{% endif %}">
+          <label>
+            Setup cost per m²
+            <input type="number"
+                   name="capex_per_m2"
+                   value="{{ form.capex_per_m2 }}"
+                   step="1">
+          </label>
+         
+        </div>
+      </section>
+
+      <div style="margin-top: 14px; text-align: center;">
+        <button type="submit" id="calcBtn">Calculate</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Show/hide logic for the optional fields -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    function bindToggle(checkboxId, blockId) {
+      const cb = document.getElementById(checkboxId);
+      const block = document.getElementById(blockId);
+      if (!cb || !block) return;
+      function update() {
+        block.style.display = cb.checked ? 'block' : 'none';
+      }
+      cb.addEventListener('change', update);
+      update();
+    }
+
+    bindToggle('use_custom_production_cost', 'production_cost_block');
+    bindToggle('use_custom_price', 'price_block');
+    bindToggle('use_custom_capex', 'capex_block');
+    // 'use_solar' has no block to toggle (just a flag)
+  });
+</script>
+
+</body>
 </html>

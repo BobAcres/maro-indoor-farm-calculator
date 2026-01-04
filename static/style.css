@@ -469,9 +469,7 @@ td {
 th {
   background-color: #f5f5f5;
 }
-tr:hover {
-  background-color: #fafafa;
-}
+
 .negative {
   color: #c0392b;
   font-weight: bold;

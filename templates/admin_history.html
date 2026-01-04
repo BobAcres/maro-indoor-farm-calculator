@@ -2,61 +2,83 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Maro – Calculation History</title>
+    <title>Maro – Admin History</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
     />
   </head>
-
   <body>
     <div class="app-card">
       <!-- Header -->
       <header class="app-header">
         <div class="brand">
+          <img
+            src="{{ url_for('static', filename='/palmtiny.png') }}"
+            alt="Maro logo"
+            class="brand-logo"
+          />
           <div class="brand-text">
             <div class="brand-name">Maro</div>
-            <div class="brand-tagline">Admin – History</div>
+            <div class="brand-tagline">Indoor Farm Calculator</div>
           </div>
+        </div>
+        <div class="brand-meta">
+          <span class="meta-pill">Controlled Environment Agriculture</span>
         </div>
       </header>
 
-      <div class="results-body">
-        <h1>Calculation History</h1>
-
-        {% if history %}
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Country</th>
-              <th>Crop</th>
-              <th>System</th>
-              <th>Area (m²)</th>
-              <th>Annual Profit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in history %}
-            <tr>
-              <td>{{ row.created_at }}</td>
-              <td>{{ row.country }}</td>
-              <td>{{ row.crop | capitalize }}</td>
-              <td>{{ row.system_type | capitalize }}</td>
-              <td>{{ row.area_m2 }}</td>
-              <td
-                class="{% if row.annual_profit < 0 %}negative{% else %}positive{% endif %}"
-              >
-                {{ row.annual_profit }}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <p>No history yet.</p>
-        {% endif %}
+      <div class="compact-row" style="margin-bottom: 10px">
+        <a href="{{ url_for('index') }}" style="font-size: 0.9rem">
+          &#8592; New calculation
+        </a>
       </div>
+
+      {% if history and history|length > 0 %}
+
+      <table
+        class="results-table"
+        style="width: 100%; border-collapse: collapse; font-size: 0.85rem"
+      >
+        <thead>
+          <tr style="background: #000; color: #fff">
+            <th>ID</th>
+            <th>Date (UTC)</th>
+            <th>Country</th>
+            <th>Crop</th>
+            <th>System</th>
+            <th>Area (m²)</th>
+            <th>Yield (kg)</th>
+            <th>Revenue</th>
+            <th>Profit</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in history %}
+          <tr>
+            <td>{{ row.id }}</td>
+            <td>{{ row.created_at[:19].replace("T", " ") }}</td>
+            <td>{{ row.country_code }}</td>
+            <td>{{ row.crop | replace("_"," ") | title }}</td>
+            <td>{{ row.system_type | title }}</td>
+            <td>{{ "%.0f"|format(row.area_m2) }}</td>
+            <td>{{ "%.0f"|format(row.annual_yield) }}</td>
+            <td>
+              {{ "%.2f"|format(row.annual_revenue) }} {{ row.currency_code }}
+            </td>
+            <td>
+              {{ "%.2f"|format(row.annual_profit) }} {{ row.currency_code }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% else %}
+
+      <p style="margin-top: 12px; font-size: 0.9rem">No calculations yet.</p>
+
+      {% endif %}
     </div>
   </body>
 </html>
