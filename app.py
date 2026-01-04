@@ -199,33 +199,52 @@ def compute_results(form):
 @app.route("/", methods=["GET", "POST"])
 def index():
     form = MyForm()
+
+    # =========================
+    # Populate ALL dropdowns
+    # =========================
+
     form.country.choices = [(c["code"], c["name"]) for c in COUNTRIES]
-    assert hasattr(form, "currency_override")
+
+    form.setup_level.choices = [
+        ("local", "Local"),
+        ("standard", "Standard"),
+        ("hightech", "Hi‑tech"),
+    ]
+
+    form.system_type.choices = [
+        ("soil", "Greenhouse soil"),
+        ("soilless", "Greenhouse soilless"),
+        ("vertical", "Vertical"),
+        ("hydroponics", "Hydroponics"),
+        ("aeroponics", "Aeroponics"),
+    ]
+
+    form.crop.choices = [
+        ("tomato", "Tomato"),
+        ("pepper", "Pepper"),
+        ("cucumber", "Cucumber"),
+        ("strawberry", "Strawberry"),
+        ("lettuce", "Lettuce"),
+        ("spinach", "Spinach"),
+        ("potato", "Potato"),
+        ("fluted_pumpkin", "Fluted pumpkin"),
+        ("basil", "Basil"),
+        ("water_leaf", "Water leaf"),
+        ("cannabis", "Cannabis"),
+    ]
+
     error = None
 
     if form.validate_on_submit():
         form_data = form.data.copy()
+
         fill_auto_economics_for_form(form_data)
         results, error = compute_results(form_data)
 
         if results and not error:
             session["last_form"] = form_data
             session["last_results"] = results
-
-            db = get_db()
-            db.execute(
-                "INSERT INTO history (area_m2, system_type, crop, country, savings) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (
-                    results["area"],
-                    results["system_type"],
-                    results["crop"],
-                    results["country_code"],
-                    results["solar_savings"],
-                ),
-            )
-            db.commit()
-
             return redirect(url_for("results_page"))
 
     return render_template(
@@ -234,7 +253,6 @@ def index():
         error=error,
         SOLAR_SAVINGS_RATE=SOLAR_SAVINGS_RATE,
     )
-
 
 @app.route("/results")
 def results_page():

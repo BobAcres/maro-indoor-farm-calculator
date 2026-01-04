@@ -218,35 +218,25 @@ section {
    ========================= */
 
 /* Full-width text inputs and selects */
+/* =========================
+   Inputs – always full width
+   ========================= */
+
 input[type="text"],
+input[type="number"],
 select {
   width: 100%;
   max-width: 100%;
-  padding: 8px 11px;
+  padding: 10px 12px;
   border-radius: var(--radius-md);
   border: 1px solid rgba(148, 163, 184, 0.5);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   background: rgba(15, 23, 42, 0.88);
   color: var(--maro-text);
-  transition: border-color 0.16s ease, box-shadow 0.16s ease,
-    background-color 0.16s ease, transform 0.08s ease;
+  box-sizing: border-box;
 }
 
-/* Numeric inputs: ~10 characters wide */
-input[type="number"] {
-  width: 10ch;
-  max-width: 10ch;
-  padding: 8px 11px;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(148, 163, 184, 0.5);
-  font-size: 0.9rem;
-  background: rgba(15, 23, 42, 0.88);
-  color: var(--maro-text);
-  transition: border-color 0.16s ease, box-shadow 0.16s ease,
-    background-color 0.16s ease, transform 0.08s ease;
-}
-
-/* Shared focus style */
+/* Focus state */
 input[type="text"]:focus,
 input[type="number"]:focus,
 select:focus {
@@ -255,13 +245,6 @@ select:focus {
   box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.7),
     0 8px 20px rgba(16, 185, 129, 0.45);
   background: rgba(15, 23, 42, 1);
-  transform: translateY(-1px);
-}
-
-/* Keep .short-input but no width override */
-.short-input {
-  width: 100%;
-  max-width: 100%;
 }
 
 input[type="checkbox"] {
