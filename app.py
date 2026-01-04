@@ -76,14 +76,23 @@ def fetch_countries():
         currencies = c.get("currencies", {})
         code = list(currencies.keys())[0] if currencies else "USD"
 
-        countries.append({
-            "code": c.get("cca2"),
-            "name": c.get("name", {}).get("common"),
-            "currency_code": code,
-            "lat": latlng[0] if latlng else 0,
-        })
+        currencies = c.get("currencies", {})
+    if currencies:
+     currency_code = list(currencies.keys())[0]
+     currency_symbol = currencies[currency_code].get("symbol", currency_code)
+    else:
+     currency_code = "USD"
+     currency_symbol = "$"
 
-    return countries
+     countries.append({
+    "code": c.get("cca2"),
+    "name": c.get("name", {}).get("common"),
+    "currency_code": currency_code,
+    "currency_symbol": currency_symbol,
+    "lat": latlng[0] if latlng else 0,
+})
+
+    return sorted(countries, key=lambda c: c["name"])
 
 
 COUNTRIES = fetch_countries()
@@ -155,9 +164,13 @@ SYSTEM_YIELD_MULTIPLIER = {
 def populate_dropdowns(form):
     form.country.choices = [(c["code"], c["name"]) for c in COUNTRIES]
     form.setup_level.choices = [("local", "Local"), ("standard", "Standard"), ("hightech", "Hi‑tech")]
-    form.system_type.choices = list(SYSTEM_YIELD_MULTIPLIER.items())
-    form.crop.choices = [(k, k.capitalize()) for k in BASE_YIELD_KG_PER_M2]
-
+    form.system_type.choices = [
+    ("soil", "Greenhouse soil"),
+    ("soilless", "Greenhouse soilless"),
+    ("hydroponics", "Hydroponics"),
+    ("aeroponics", "Aeroponics"),
+    ("vertical", "Vertical farming"),
+]
 # =====================
 # Helpers
 # =====================
@@ -171,70 +184,206 @@ def normalize_form_data(form):
 # CORE CALCULATION (override‑safe)
 # =====================
 def compute_results(form):
+    """
+    Core economics engine.
+    Country-aware, override-safe, per-plant transparent.
+    """
+
     try:
-        area = float(form.get("area_m2"))
-        if area <= 0:
-            return None, "Invalid area"
+        # -------------------------
+        # Basic inputs
+        # -------------------------
+        area_m2 = float(form.get("area_m2") or 0)
+        if area_m2 <= 0:
+            return None, "Please enter a valid greenhouse area."
 
-        country = find_country(form.get("country"))
-        econ = generate_country_economics(country) if country else {}
+        crop = form.get("crop")
+        system_type = form.get("system_type")
+        setup_level = form.get("setup_level")
+        use_solar = bool(form.get("use_solar"))
+        country_code = form.get("country")
 
-        plants = area * PLANTS_PER_M2
+        # -------------------------
+        # Country & currency
+        # -------------------------
+        country = find_country(country_code)
+        if not country:
+            return None, "Invalid country selected."
 
-        # Yield
-        base_yield = BASE_YIELD_KG_PER_M2.get(form.get("crop"), 20)
-        system_mult = SYSTEM_YIELD_MULTIPLIER.get(form.get("system_type"), 1.0)
-        annual_yield = area * base_yield * system_mult * econ.get("yield_index", 1)
+        currency_code = country.get("currency_code", "USD")
+        currency_symbol = country.get("currency_symbol", "")
 
-        # Costs (USER OVERRIDES respected)
-        labor_cost = float(form.get("annual_production_cost"))
-        if labor_cost == 0:
-            labor_cost = area * 20 * econ.get("labor_index", 1)
+        # Generate country economics (works for ALL countries)
+        economics = generate_country_economics(country)
 
-        energy_cost = labor_cost * econ.get("energy_index", 1)
-        gross_cost = labor_cost + energy_cost
+        # -------------------------
+        # Plant density
+        # -------------------------
+        plants_per_m2 = PLANTS_PER_M2
+        total_plants = area_m2 * plants_per_m2
 
-        solar_savings = gross_cost * SOLAR_SAVINGS_RATE * econ.get("solar_index", 1) if form.get("use_solar") else 0
-        net_cost = gross_cost - solar_savings
+        # -------------------------
+        # Yield calculation
+        # -------------------------
+        base_yield_per_m2 = BASE_YIELD_KG_PER_M2.get(crop, 20)
 
-        # Revenue
-        price = float(form.get("price_per_unit"))
-        if price == 0:
-            price = 2.5 * econ.get("price_index", 1)
+        system_multiplier = SYSTEM_YIELD_MULTIPLIER.get(system_type, 1.0)
 
-        revenue = annual_yield * price
-        profit = revenue - net_cost
+        annual_yield_kg = (
+            area_m2
+            * base_yield_per_m2
+            * system_multiplier
+            * economics["yield_index"]
+        )
 
-        # CapEx
-        capex = float(form.get("capex_per_m2"))
-        if capex == 0:
-            capex = 300 * econ.get("capex_index", 1)
+        yield_per_plant_kg = (
+            annual_yield_kg / total_plants if total_plants else 0
+        )
 
-        total_capex = capex * area
+        # -------------------------
+        # COSTS (user overrides win)
+        # -------------------------
+        # Labor / operating cost
+        user_annual_cost = float(form.get("annual_production_cost") or 0)
 
-        return {
-            "plants": plants,
-            "annual_yield": round(annual_yield, 2),
-            "yield_per_plant": round(annual_yield / plants, 3),
+        if user_annual_cost > 0:
+            gross_production_cost = user_annual_cost
+        else:
+            # Default: cost per m² adjusted by country
+            base_cost_per_m2 = 20  # conservative global baseline
+            gross_production_cost = (
+                base_cost_per_m2
+                * area_m2
+                * economics["labor_index"]
+            )
 
-            "gross_cost": round(gross_cost, 2),
-            "net_cost": round(net_cost, 2),
-            "cost_per_plant": round(net_cost / plants, 2),
+        # Energy cost (derived)
+        energy_cost = gross_production_cost * economics["energy_index"]
 
-            "revenue": round(revenue, 2),
-            "revenue_per_plant": round(revenue / plants, 2),
+        gross_production_cost += energy_cost
 
-            "profit": round(profit, 2),
-            "profit_per_plant": round(profit / plants, 2),
+        # Solar savings
+        solar_savings = 0
+        if use_solar:
+            solar_savings = (
+                gross_production_cost
+                * SOLAR_SAVINGS_RATE
+                * economics["solar_index"]
+            )
 
-            "total_capex": round(total_capex, 2),
-            "capex_per_plant": round(total_capex / plants, 2),
+        net_production_cost = gross_production_cost - solar_savings
 
-            "currency": country["currency_code"] if country else "USD",
-        }, None
+        cost_per_plant = (
+            net_production_cost / total_plants if total_plants else 0
+        )
+
+        # -------------------------
+        # REVENUE (user overrides win)
+        # -------------------------
+        user_price = float(form.get("price_per_unit") or 0)
+
+        if user_price > 0:
+            price_per_kg = user_price
+        else:
+            # Default farm-gate price baseline
+            base_price_per_kg = 2.5
+            price_per_kg = (
+                base_price_per_kg
+                * economics["price_index"]
+            )
+
+        annual_revenue = annual_yield_kg * price_per_kg
+        revenue_per_plant = (
+            annual_revenue / total_plants if total_plants else 0
+        )
+
+        # -------------------------
+        # PROFIT
+        # -------------------------
+        annual_profit = annual_revenue - net_production_cost
+        profit_per_plant = (
+            annual_profit / total_plants if total_plants else 0
+        )
+
+        # -------------------------
+        # CAPEX (user overrides win)
+        # -------------------------
+        user_capex_per_m2 = float(form.get("capex_per_m2") or 0)
+
+        if user_capex_per_m2 > 0:
+            capex_per_m2 = user_capex_per_m2
+        else:
+            base_capex_per_m2 = 300
+            capex_per_m2 = (
+                base_capex_per_m2
+                * economics["capex_index"]
+            )
+
+        total_setup_cost = capex_per_m2 * area_m2
+        capex_per_plant = (
+            total_setup_cost / total_plants if total_plants else 0
+        )
+
+        payback_years = (
+            total_setup_cost / annual_profit
+            if annual_profit > 0
+            else None
+        )
+
+        # -------------------------
+        # FINAL RESULTS OBJECT
+        # -------------------------
+        results = {
+            # Context
+            "country_code": country_code,
+            "currency_code": currency_code,
+            "currency_symbol": currency_symbol,
+
+            # Scale
+            "area_m2": round(area_m2, 2),
+            "plants_per_m2": plants_per_m2,
+            "plants": round(total_plants, 0),
+
+            # Production
+            "crop": crop,
+            "system_type": system_type,
+            "annual_yield_kg": round(annual_yield_kg, 2),
+            "yield_per_plant_kg": round(yield_per_plant_kg, 3),
+
+            # Costs
+            "gross_production_cost": round(gross_production_cost, 2),
+            "solar_savings": round(solar_savings, 2),
+            "net_production_cost": round(net_production_cost, 2),
+            "cost_per_plant": round(cost_per_plant, 2),
+
+            # Revenue
+            "price_per_kg": round(price_per_kg, 2),
+            "annual_revenue": round(annual_revenue, 2),
+            "revenue_per_plant": round(revenue_per_plant, 2),
+
+            # Profit
+            "annual_profit": round(annual_profit, 2),
+            "profit_per_plant": round(profit_per_plant, 2),
+
+            # CapEx
+            "capex_per_m2": round(capex_per_m2, 2),
+            "total_setup_cost": round(total_setup_cost, 2),
+            "capex_per_plant": round(capex_per_plant, 2),
+
+            # Payback
+            "simple_payback_years": (
+                round(payback_years, 2) if payback_years else None
+            ),
+
+            # Transparency
+            "economics_profile": economics,
+            "SOLAR_SAVINGS_RATE": SOLAR_SAVINGS_RATE,
+        }
+
+        return results, None
 
     except Exception as e:
-        return None, str(e)
+        return None, f"Calculation error: {str(e)}"
 
 # =====================
 # Routes
