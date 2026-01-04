@@ -568,9 +568,7 @@ def compute_results(form):
 def index():
     init_db()
 
-    default_country = "US"
-    if not any(c["code"] == "US" for c in COUNTRIES) and COUNTRIES:
-        default_country = COUNTRIES[0]["code"]
+    default_country = COUNTRIES[0]["code"] if COUNTRIES else "US"
 
     form_defaults = {
         "area_m2": "2000",
