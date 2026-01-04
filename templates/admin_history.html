@@ -2,12 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Indoor Farm Calculator - History</title>
+    <title>Maro – Calculation History</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
     />
   </head>
+
   <body>
     <div class="app-card">
       <header class="app-header">
@@ -19,88 +20,45 @@
           />
           <div class="brand-text">
             <div class="brand-name">Maro</div>
-            <div class="brand-tagline">Indoor Farm Calculator - History</div>
+            <div class="brand-tagline">Calculation History</div>
           </div>
-        </div>
-        <div class="brand-meta">
-          <span class="meta-pill">Admin view</span>
         </div>
       </header>
 
-      <div class="compact-row" style="margin-bottom: 10px">
-        <a href="{{ url_for('index') }}" style="font-size: 0.9rem">
-          &#8592; Back to input
-        </a>
-      </div>
+      <a href="{{ url_for('index') }}" class="back-link">
+        ← Back to calculator
+      </a>
 
-      {% if history and history|length > 0 %}
-      <section style="margin-top: 14px">
-        <h2 class="section-title">Last 50 calculations</h2>
-        <table
-          style="
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-            margin-top: 6px;
-          "
-        >
-          <tr style="background: #000000">
-            <th style="padding: 4px 6px; border: 1px solid #e5e7eb">ID</th>
-            <th style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              Time (UTC)
-            </th>
-            <th style="padding: 4px 6px; border: 1px solid #e5e7eb">Country</th>
-            <th style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              Currency
-            </th>
-            <th style="padding: 4px 6px; border: 1px solid #e5e7eb">Crop</th>
-            <th style="padding: 4px 6px; border: 1px solid #e5e7eb">System</th>
-            <th style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              Area (m²)
-            </th>
-            <th style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              Annual yield (kg)
-            </th>
-            <th style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              Annual profit
-            </th>
-          </tr>
-          {% for row in history %}
-          <tr>
-            <td style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              {{ row.id }}
-            </td>
-            <td style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              {{ row.created_at }}
-            </td>
-            <td style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              {{ row.country_code }}
-            </td>
-            <td style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              {{ row.currency_code }}
-            </td>
-            <td style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              {{ row.crop }}
-            </td>
-            <td style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              {{ row.system_type }}
-            </td>
-            <td style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              {{ "%.0f"|format(row.area_m2) }}
-            </td>
-            <td style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              {{ "%.0f"|format(row.annual_yield) }}
-            </td>
-            <td style="padding: 4px 6px; border: 1px solid #e5e7eb">
-              {{ "%.2f"|format(row.annual_profit) }} {{ row.currency_code }}
-            </td>
-          </tr>
-          {% endfor %}
+      <div class="history-wrapper">
+        {% if history and history|length > 0 %}
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Area (m²)</th>
+              <th>System type</th>
+              <th>Crop</th>
+              <th>Country</th>
+              <th>Solar savings</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in history %}
+            <tr>
+              <td>{{ row["created_at"] }}</td>
+              <td>{{ "%.0f"|format(row["area_m2"]) }}</td>
+              <td>{{ row["system_type"] }}</td>
+              <td>{{ row["crop"] }}</td>
+              <td>{{ row["country"] }}</td>
+              <td>{{ "%.2f"|format(row["savings"]) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
         </table>
-      </section>
-      {% else %}
-      <p>No history yet.</p>
-      {% endif %}
+        {% else %}
+        <div class="history-empty">No calculations have been saved yet.</div>
+        {% endif %}
+      </div>
     </div>
   </body>
 </html>

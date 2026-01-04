@@ -193,6 +193,17 @@ def compute_results(form):
     except Exception as e:
         return None, str(e)
 
+def normalize_form_data(form_data):
+    for key in (
+        "annual_production_cost",
+        "price_per_unit",
+        "capex_per_m2",
+        "area_m2",
+    ):
+        val = form_data.get(key)
+        if val is None or val == "":
+            form_data[key] = 0
+
 # =====================
 # Routes
 # =====================
@@ -239,13 +250,15 @@ def index():
     if form.validate_on_submit():
         form_data = form.data.copy()
 
-        fill_auto_economics_for_form(form_data)
-        results, error = compute_results(form_data)
+    normalize_form_data(form_data)
+    fill_auto_economics_for_form(form_data)
 
-        if results and not error:
-            session["last_form"] = form_data
-            session["last_results"] = results
-            return redirect(url_for("results_page"))
+    results, error = compute_results(form_data)
+
+    if results and not error:
+        session["last_form"] = form_data
+        session["last_results"] = results
+        return redirect(url_for("results_page"))
 
     return render_template(
         "index.html",
