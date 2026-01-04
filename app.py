@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import requests
+from math import cos, radians
 
 from flask import (
     Flask, render_template, request,
@@ -19,6 +20,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE = os.path.join(BASE_DIR, "farm_calc.db")
 SOLAR_SAVINGS_RATE = 0.20
 ADMIN_KEY = os.environ.get("ADMIN_KEY")
+
+PLANTS_PER_M2 = 2.0
 
 # =====================
 # DB helpers
@@ -46,7 +49,7 @@ def init_db():
             system_type TEXT,
             crop TEXT,
             country TEXT,
-            savings REAL,
+            annual_profit REAL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -54,41 +57,33 @@ def init_db():
     conn.close()
 
 # =====================
-# Country lookup
+# Countries
 # =====================
 def fetch_countries():
     try:
         r = requests.get(
-            "https://restcountries.com/v3.1/all?fields=name,cca2,currencies",
+            "https://restcountries.com/v3.1/all?fields=name,cca2,currencies,latlng",
             timeout=10,
         )
         r.raise_for_status()
         data = r.json()
     except Exception:
-        return [{
-            "code": "US",
-            "name": "United States",
-            "currency_code": "USD",
-            "currency_symbol": "$",
-        }]
+        return []
 
     countries = []
     for c in data:
+        latlng = c.get("latlng", [0, 0])
         currencies = c.get("currencies", {})
-        if currencies:
-            code = list(currencies.keys())[0]
-            symbol = currencies[code].get("symbol", code)
-        else:
-            code, symbol = "USD", "$"
+        code = list(currencies.keys())[0] if currencies else "USD"
 
         countries.append({
-            "code": c.get("cca2", ""),
-            "name": c.get("name", {}).get("common", ""),
+            "code": c.get("cca2"),
+            "name": c.get("name", {}).get("common"),
             "currency_code": code,
-            "currency_symbol": symbol,
+            "lat": latlng[0] if latlng else 0,
         })
 
-    return sorted(countries, key=lambda x: x["name"])
+    return countries
 
 
 COUNTRIES = fetch_countries()
@@ -98,165 +93,188 @@ def find_country(code):
     return next((c for c in COUNTRIES if c["code"] == code), None)
 
 # =====================
-# Auto‑economics (safe defaults)
+# GLOBAL COUNTRY ECONOMICS (auto‑generated)
 # =====================
-def fill_auto_economics_for_form(form):
-    for key in (
-        "annual_production_cost",
-        "price_per_unit",
-        "capex_per_m2",
-    ):
-        if not form.get(key):
-            form[key] = 0
+def generate_country_economics(country):
+    """
+    Produces reasonable defaults for ANY country.
+    """
+    lat = abs(country.get("lat", 0))
+
+    # Solar potential (higher near equator)
+    solar_index = max(0.6, min(1.4, cos(radians(lat)) + 0.4))
+
+    # Income proxy
+    if lat < 30:
+        labor_index = 0.5
+        price_index = 0.7
+        capex_index = 1.2
+    elif lat < 50:
+        labor_index = 1.0
+        price_index = 1.0
+        capex_index = 1.0
+    else:
+        labor_index = 1.3
+        price_index = 1.3
+        capex_index = 0.95
+
+    return {
+        "labor_index": labor_index,
+        "energy_index": 0.9,
+        "yield_index": 1.0,
+        "price_index": price_index,
+        "capex_index": capex_index,
+        "solar_index": solar_index,
+    }
 
 # =====================
-# Core calculation
+# Crop & system baselines
+# =====================
+BASE_YIELD_KG_PER_M2 = {
+    "tomato": 25,
+    "pepper": 20,
+    "cucumber": 30,
+    "strawberry": 18,
+    "lettuce": 40,
+    "spinach": 35,
+    "basil": 50,
+    "cannabis": 12,
+}
+
+SYSTEM_YIELD_MULTIPLIER = {
+    "soil": 0.85,
+    "soilless": 1.00,
+    "hydroponics": 1.15,
+    "aeroponics": 1.25,
+    "vertical": 1.40,
+}
+
+# =====================
+# Dropdowns
+# =====================
+def populate_dropdowns(form):
+    form.country.choices = [(c["code"], c["name"]) for c in COUNTRIES]
+    form.setup_level.choices = [("local", "Local"), ("standard", "Standard"), ("hightech", "Hi‑tech")]
+    form.system_type.choices = list(SYSTEM_YIELD_MULTIPLIER.items())
+    form.crop.choices = [(k, k.capitalize()) for k in BASE_YIELD_KG_PER_M2]
+
+# =====================
+# Helpers
+# =====================
+def normalize_form_data(form):
+    for k in ("annual_production_cost", "price_per_unit", "capex_per_m2", "area_m2"):
+        if not form.get(k):
+            form[k] = 0
+    return form
+
+# =====================
+# CORE CALCULATION (override‑safe)
 # =====================
 def compute_results(form):
     try:
-        area = float(form.get("area_m2") or 0)
-        crop = form.get("crop")
-        system_type = form.get("system_type")
-        setup_level = form.get("setup_level")
-        use_solar = bool(form.get("use_solar"))
-        country_code = form.get("country") or "US"
-
+        area = float(form.get("area_m2"))
         if area <= 0:
-            return None, "Please enter a valid greenhouse area."
+            return None, "Invalid area"
 
-        country = find_country(country_code)
-        currency_code = country["currency_code"] if country else "USD"
+        country = find_country(form.get("country"))
+        econ = generate_country_economics(country) if country else {}
 
-        annual_production_cost = float(form.get("annual_production_cost") or 0)
-        price_per_kg = float(form.get("price_per_unit") or 0)
-        capex_per_m2 = float(form.get("capex_per_m2") or 0)
+        plants = area * PLANTS_PER_M2
 
-        annual_yield = area * 30  # conservative baseline
-        gross_cost = annual_production_cost
-        solar_savings = gross_cost * SOLAR_SAVINGS_RATE if use_solar else 0
+        # Yield
+        base_yield = BASE_YIELD_KG_PER_M2.get(form.get("crop"), 20)
+        system_mult = SYSTEM_YIELD_MULTIPLIER.get(form.get("system_type"), 1.0)
+        annual_yield = area * base_yield * system_mult * econ.get("yield_index", 1)
+
+        # Costs (USER OVERRIDES respected)
+        labor_cost = float(form.get("annual_production_cost"))
+        if labor_cost == 0:
+            labor_cost = area * 20 * econ.get("labor_index", 1)
+
+        energy_cost = labor_cost * econ.get("energy_index", 1)
+        gross_cost = labor_cost + energy_cost
+
+        solar_savings = gross_cost * SOLAR_SAVINGS_RATE * econ.get("solar_index", 1) if form.get("use_solar") else 0
         net_cost = gross_cost - solar_savings
-        revenue = annual_yield * price_per_kg
+
+        # Revenue
+        price = float(form.get("price_per_unit"))
+        if price == 0:
+            price = 2.5 * econ.get("price_index", 1)
+
+        revenue = annual_yield * price
         profit = revenue - net_cost
 
-        total_setup_cost = capex_per_m2 * area
-        payback = (
-            total_setup_cost / profit if profit > 0 else None
-        )
+        # CapEx
+        capex = float(form.get("capex_per_m2"))
+        if capex == 0:
+            capex = 300 * econ.get("capex_index", 1)
 
-        results = {
-            "area": area,
-            "crop": crop,
-            "system_type": system_type,
-            "setup_level": setup_level,
-            "setup_label": setup_level.capitalize(),
-            "country_code": country_code,
-            "currency_code": currency_code,
+        total_capex = capex * area
 
-            "plants_per_m2": 2.0,
-            "crops_per_year": 1,
-            "yield_per_m2_per_crop": 30,
-            "plants": area * 2.0,
-            "annual_yield": annual_yield,
+        return {
+            "plants": plants,
+            "annual_yield": round(annual_yield, 2),
+            "yield_per_plant": round(annual_yield / plants, 3),
 
-            "nutrient_per_m2_per_crop": 0.5,
-            "nutrient_per_plant_per_crop": 0.25,
-            "nutrient_per_crop_total": area * 0.5,
-            "annual_nutrient_total": area * 0.5,
+            "gross_cost": round(gross_cost, 2),
+            "net_cost": round(net_cost, 2),
+            "cost_per_plant": round(net_cost / plants, 2),
 
-            "gross_production_cost": gross_cost,
-            "solar_savings": solar_savings,
-            "net_production_cost": net_cost,
+            "revenue": round(revenue, 2),
+            "revenue_per_plant": round(revenue / plants, 2),
 
-            "cost_per_kg": net_cost / annual_yield if annual_yield else None,
-            "cost_per_m2_per_year": net_cost / area,
-            "cost_per_plant_per_year": net_cost / (area * 2.0),
+            "profit": round(profit, 2),
+            "profit_per_plant": round(profit / plants, 2),
 
-            "price_per_kg": price_per_kg,
-            "annual_revenue": revenue,
-            "revenue_per_m2_per_year": revenue / area,
-            "revenue_per_plant_per_year": revenue / (area * 2.0),
+            "total_capex": round(total_capex, 2),
+            "capex_per_plant": round(total_capex / plants, 2),
 
-            "capex_per_m2": capex_per_m2,
-            "total_setup_cost": total_setup_cost,
-
-            "annual_profit": profit,
-            "profit_per_kg": profit / annual_yield if annual_yield else None,
-            "profit_per_m2_per_year": profit / area,
-            "profit_per_plant_per_year": profit / (area * 2.0),
-
-            "simple_payback_years": payback,
-            "SOLAR_SAVINGS_RATE": SOLAR_SAVINGS_RATE,
-        }
-
-        return results, None
+            "currency": country["currency_code"] if country else "USD",
+        }, None
 
     except Exception as e:
         return None, str(e)
 
-def normalize_form_data(form_data):
-    for key in (
-        "annual_production_cost",
-        "price_per_unit",
-        "capex_per_m2",
-        "area_m2",
-    ):
-        val = form_data.get(key)
-        if val is None or val == "":
-            form_data[key] = 0
-
 # =====================
 # Routes
 # =====================
-@app.route("/", methods=["GET", "POST"])
-def index():
+@app.route("/", methods=["GET", "HEAD"])
+def home():
+    if request.method == "HEAD":
+        return ("", 200)
+
     form = MyForm()
+    populate_dropdowns(form)
+    return render_template("index.html", form=form)
 
-    # =========================
-    # Populate ALL dropdowns
-    # =========================
 
-    form.country.choices = [(c["code"], c["name"]) for c in COUNTRIES]
+@app.route("/calculate", methods=["POST"])
+def calculate():
+    form = MyForm()
+    populate_dropdowns(form)
 
-    form.setup_level.choices = [
-        ("local", "Local"),
-        ("standard", "Standard"),
-        ("hightech", "Hi‑tech"),
-    ]
+    data = normalize_form_data(request.form.to_dict())
+    results, error = compute_results(data)
 
-    form.system_type.choices = [
-        ("soil", "Greenhouse soil"),
-        ("soilless", "Greenhouse soilless"),
-        ("vertical", "Vertical"),
-        ("hydroponics", "Hydroponics"),
-        ("aeroponics", "Aeroponics"),
-    ]
+    if results:
+        # ✅ SAVE TO HISTORY HERE
+        db = get_db()
+        db.execute(
+            """
+            INSERT INTO history (area_m2, system_type, crop, country, annual_profit)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                float(data.get("area_m2", 0)),
+                data.get("system_type"),
+                data.get("crop"),
+                data.get("country"),
+                results.get("annual_profit"),
+            ),
+        )
+        db.commit()
 
-    form.crop.choices = [
-        ("tomato", "Tomato"),
-        ("pepper", "Pepper"),
-        ("cucumber", "Cucumber"),
-        ("strawberry", "Strawberry"),
-        ("lettuce", "Lettuce"),
-        ("spinach", "Spinach"),
-        ("potato", "Potato"),
-        ("fluted_pumpkin", "Fluted pumpkin"),
-        ("basil", "Basil"),
-        ("water_leaf", "Water leaf"),
-        ("cannabis", "Cannabis"),
-    ]
-
-    error = None
-
-    if form.validate_on_submit():
-        form_data = form.data.copy()
-
-    normalize_form_data(form_data)
-    fill_auto_economics_for_form(form_data)
-
-    results, error = compute_results(form_data)
-
-    if results and not error:
-        session["last_form"] = form_data
         session["last_results"] = results
         return redirect(url_for("results_page"))
 
@@ -264,30 +282,13 @@ def index():
         "index.html",
         form=form,
         error=error,
-        SOLAR_SAVINGS_RATE=SOLAR_SAVINGS_RATE,
     )
+
 
 @app.route("/results")
 def results_page():
-    if "last_results" not in session:
-        return redirect(url_for("index"))
+    return render_template("results.html", results=session.get("last_results"))
 
-    return render_template(
-        "results.html",
-        results=session["last_results"],
-    )
-
-
-@app.route("/admin/history")
-def admin_history():
-    if request.args.get("key") != ADMIN_KEY:
-        abort(403)
-
-    rows = get_db().execute(
-        "SELECT * FROM history ORDER BY id DESC"
-    ).fetchall()
-
-    return render_template("admin_history.html", history=rows)
 
 # =====================
 # Init
@@ -296,4 +297,4 @@ with app.app_context():
     init_db()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5000)

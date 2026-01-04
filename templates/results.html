@@ -2,15 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Indoor Farm Calculator – Results</title>
+    <title>Maro – Calculation Results</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
     />
   </head>
-
   <body>
     <div class="app-card">
+      <!-- Header -->
       <header class="app-header">
         <div class="brand">
           <img
@@ -24,159 +24,157 @@
           </div>
         </div>
         <div class="brand-meta">
-          <span class="meta-pill">Controlled Environment Agriculture</span>
+          <span class="meta-pill">Results</span>
         </div>
       </header>
 
-      <div class="compact-row" style="margin-bottom: 10px">
-        <a href="{{ url_for('index') }}" style="font-size: 0.9rem">
-          &#8592; Back to Calculator
-        </a>
+      <div class="form-body">
+        {% if results %}
+
+        <!-- SUMMARY -->
+        <section>
+          <h2 class="section-title">Summary</h2>
+
+          <ul class="result-list">
+            <li>
+              <strong>Country:</strong>
+              {{ results.country_code }}
+            </li>
+            <li>
+              <strong>Crop:</strong>
+              {{ results.crop }}
+            </li>
+            <li>
+              <strong>System type:</strong>
+              {{ results.system_type }}
+            </li>
+            <li>
+              <strong>Greenhouse area:</strong>
+              {{ results.area_m2 }} m²
+            </li>
+            <li>
+              <strong>Total plants:</strong>
+              {{ results.plants | int }}
+            </li>
+          </ul>
+        </section>
+
+        <!-- PRODUCTION -->
+        <section>
+          <h2 class="section-title">Production</h2>
+
+          <ul class="result-list">
+            <li>
+              <strong>Annual yield:</strong>
+              {{ results.annual_yield_kg }} kg
+            </li>
+            <li>
+              <strong>Yield per plant:</strong>
+              {{ results.yield_per_plant_kg }} kg / plant
+            </li>
+          </ul>
+        </section>
+
+        <!-- COSTS -->
+        <section>
+          <h2 class="section-title">Costs</h2>
+
+          <ul class="result-list">
+            <li>
+              <strong>Gross production cost:</strong>
+              {{ results.gross_production_cost }} {{ results.currency_code }}
+            </li>
+
+            {% if results.solar_savings > 0 %}
+            <li>
+              <strong>Solar savings:</strong>
+              −{{ results.solar_savings }} {{ results.currency_code }}
+            </li>
+            {% endif %}
+
+            <li>
+              <strong>Net production cost:</strong>
+              {{ results.net_production_cost }} {{ results.currency_code }}
+            </li>
+
+            <li>
+              <strong>Cost per plant:</strong>
+              {{ results.cost_per_plant }} {{ results.currency_code }} / plant
+            </li>
+          </ul>
+        </section>
+
+        <!-- REVENUE -->
+        <section>
+          <h2 class="section-title">Revenue</h2>
+
+          <ul class="result-list">
+            <li>
+              <strong>Market price:</strong>
+              {{ results.price_per_kg }} {{ results.currency_code }} / kg
+            </li>
+            <li>
+              <strong>Annual revenue:</strong>
+              {{ results.annual_revenue }} {{ results.currency_code }}
+            </li>
+            <li>
+              <strong>Revenue per plant:</strong>
+              {{ results.revenue_per_plant }} {{ results.currency_code }} /
+              plant
+            </li>
+          </ul>
+        </section>
+
+        <!-- PROFIT -->
+        <section>
+          <h2 class="section-title">Profitability</h2>
+
+          <ul class="result-list">
+            <li>
+              <strong>Annual profit:</strong>
+              {{ results.annual_profit }} {{ results.currency_code }}
+            </li>
+            <li>
+              <strong>Profit per plant:</strong>
+              {{ results.profit_per_plant }} {{ results.currency_code }} / plant
+            </li>
+
+            {% if results.simple_payback_years %}
+            <li>
+              <strong>Simple payback period:</strong>
+              {{ results.simple_payback_years }} years
+            </li>
+            {% endif %}
+          </ul>
+        </section>
+
+        <!-- CAPITAL -->
+        <section>
+          <h2 class="section-title">Capital Investment</h2>
+
+          <ul class="result-list">
+            <li>
+              <strong>Total setup cost:</strong>
+              {{ results.total_setup_cost }} {{ results.currency_code }}
+            </li>
+            <li>
+              <strong>CapEx per plant:</strong>
+              {{ results.capex_per_plant }} {{ results.currency_code }} / plant
+            </li>
+          </ul>
+        </section>
+
+        <!-- ACTIONS -->
+        <section style="text-align: center; margin-top: 20px">
+          <a href="{{ url_for('home') }}" class="btn-secondary">
+            New calculation
+          </a>
+        </section>
+
+        {% else %}
+        <p>No results available.</p>
+        {% endif %}
       </div>
-
-      <!-- MAIN RESULTS TABLE -->
-      <table class="results-table">
-        <tbody>
-          <!-- HEADER -->
-          <tr class="results-header">
-            <th colspan="2">Results ({{ results.currency_code }})</th>
-          </tr>
-
-          <!-- PRODUCTION -->
-          <tr class="section-header">
-            <th colspan="2">Assumed data & production</th>
-          </tr>
-
-          <tr>
-            <td>System type</td>
-            <td>{{ results.system_type }}</td>
-          </tr>
-          <tr>
-            <td>Plants per m²</td>
-            <td>{{ "%.2f"|format(results.plants_per_m2) }}</td>
-          </tr>
-          <tr>
-            <td>Crops per year</td>
-            <td>{{ results.crops_per_year }}</td>
-          </tr>
-          <tr>
-            <td>Yield per m² per crop</td>
-            <td>{{ results.yield_per_m2_per_crop }} kg/m²</td>
-          </tr>
-          <tr>
-            <td>Total plants</td>
-            <td>{{ "%.0f"|format(results.plants) }}</td>
-          </tr>
-          <tr>
-            <td>Annual yield</td>
-            <td>{{ "%.0f"|format(results.annual_yield) }} kg</td>
-          </tr>
-
-          <!-- NUTRIENTS -->
-          <tr class="section-header">
-            <th colspan="2">Nutrient requirements (estimated)</th>
-          </tr>
-
-          <tr>
-            <td>Nutrient per m² per crop</td>
-            <td>{{ "%.3f"|format(results.nutrient_per_m2_per_crop) }} kg</td>
-          </tr>
-
-          <tr>
-            <td>Nutrient per plant per crop</td>
-            <td>{{ "%.3f"|format(results.nutrient_per_plant_per_crop) }} kg</td>
-          </tr>
-
-          <tr>
-            <td>Total annual nutrient requirement</td>
-            <td>{{ "%.1f"|format(results.annual_nutrient_total) }} kg/year</td>
-          </tr>
-
-          <!-- COSTS -->
-          <tr class="section-header">
-            <th colspan="2">Production costs</th>
-          </tr>
-
-          <tr>
-            <td>Gross annual production cost</td>
-            <td>
-              {{ "%.2f"|format(results.gross_production_cost) }} {{
-              results.currency_code }}
-            </td>
-          </tr>
-
-          <tr>
-            <td>Solar savings ({{ results.SOLAR_SAVINGS_RATE * 100 }}%)</td>
-            <td>
-              {{ "%.2f"|format(results.solar_savings) }} {{
-              results.currency_code }}
-            </td>
-          </tr>
-
-          <tr>
-            <td>Net annual production cost</td>
-            <td>
-              {{ "%.2f"|format(results.net_production_cost) }} {{
-              results.currency_code }}
-            </td>
-          </tr>
-
-          <tr>
-            <td>Net cost per kg</td>
-            <td>
-              {% if results.cost_per_kg is not none %} {{
-              "%.3f"|format(results.cost_per_kg) }} {{ results.currency_code
-              }}/kg {% else %}N/A{% endif %}
-            </td>
-          </tr>
-
-          <!-- REVENUE -->
-          <tr class="section-header">
-            <th colspan="2">Revenue</th>
-          </tr>
-
-          <tr>
-            <td>Selling price per kg</td>
-            <td>
-              {{ "%.3f"|format(results.price_per_kg) }} {{ results.currency_code
-              }}/kg
-            </td>
-          </tr>
-
-          <tr>
-            <td>Annual revenue</td>
-            <td>
-              {{ "%.2f"|format(results.annual_revenue) }} {{
-              results.currency_code }}
-            </td>
-          </tr>
-
-          <!-- SETUP -->
-          <tr class="section-header">
-            <th colspan="2">Setup cost</th>
-          </tr>
-
-          <tr>
-            <td>Greenhouse level</td>
-            <td>{{ results.setup_label }}</td>
-          </tr>
-          <tr>
-            <td>Setup cost per m²</td>
-            <td>
-              {{ "%.2f"|format(results.capex_per_m2) }} {{ results.currency_code
-              }}/m²
-            </td>
-          </tr>
-
-          <tr>
-            <td>Total setup cost</td>
-            <td>
-              {{ "%.2f"|format(results.total_setup_cost) }} {{
-              results.currency_code }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
     </div>
   </body>
 </html>

@@ -34,7 +34,7 @@
         <div class="error">{{ error }}</div>
         {% endif %}
 
-        <form method="POST">
+        <form method="POST" action="{{ url_for('calculate') }}">
           {{ form.hidden_tag() }}
 
           <!-- LOCATION & CURRENCY -->

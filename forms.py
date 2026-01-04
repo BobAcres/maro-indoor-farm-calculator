@@ -1,19 +1,48 @@
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, StringField, SelectField, FloatField, SubmitField
-from wtforms.validators import Optional
+from wtforms import (
+    StringField,
+    SelectField,
+    FloatField,
+    BooleanField,
+    SubmitField
+)
+from wtforms.validators import Optional, NumberRange
+
 
 class MyForm(FlaskForm):
+    # Location & setup
     country = SelectField("Country", choices=[], validators=[Optional()])
-    currency_override = StringField("Currency override", validators=[Optional()])
+    setup_level = SelectField("Setup level", choices=[], validators=[Optional()])
+    system_type = SelectField("System type", choices=[], validators=[Optional()])
+    crop = SelectField("Crop", choices=[], validators=[Optional()])
 
-    area_m2 = FloatField("Area (m²)", validators=[Optional()])
-    system_type = SelectField(...)
-    crop = SelectField(...)
-    setup_level = SelectField(...)
+    # Area
+    area_m2 = FloatField(
+        "Greenhouse area (m²)",
+        validators=[Optional(), NumberRange(min=0)],
+        default=None,
+    )
 
-    annual_production_cost = FloatField(validators=[Optional()])
-    price_per_unit = FloatField(validators=[Optional()])
-    capex_per_m2 = FloatField(validators=[Optional()])
+    # Economics — USER OVERRIDES
+    annual_production_cost = FloatField(
+        "Annual production cost (optional)",
+        validators=[Optional(), NumberRange(min=0)],
+        default=None,
+    )
 
-    use_solar = BooleanField("Use solar")
+    price_per_unit = FloatField(
+        "Market price per kg (optional)",
+        validators=[Optional(), NumberRange(min=0)],
+        default=None,
+    )
+
+    capex_per_m2 = FloatField(
+        "Capital cost per m² (optional)",
+        validators=[Optional(), NumberRange(min=0)],
+        default=None,
+    )
+
+    # Energy
+    use_solar = BooleanField("Use solar power")
+
     submit = SubmitField("Calculate")
