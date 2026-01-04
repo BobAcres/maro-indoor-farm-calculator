@@ -200,7 +200,7 @@ def compute_results(form):
 def index():
     form = MyForm()
     form.country.choices = [(c["code"], c["name"]) for c in COUNTRIES]
-
+    assert hasattr(form, "currency_override")
     error = None
 
     if form.validate_on_submit():
