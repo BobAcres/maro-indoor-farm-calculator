@@ -6,7 +6,7 @@ from wtforms import (
     BooleanField,
     SubmitField
 )
-from wtforms.validators import Optional, NumberRange
+from wtforms.validators import Optional, NumberRange, Length
 
 
 class MyForm(FlaskForm):
@@ -15,6 +15,10 @@ class MyForm(FlaskForm):
     setup_level = SelectField("Setup level", choices=[], validators=[Optional()])
     system_type = SelectField("System type", choices=[], validators=[Optional()])
     crop = SelectField("Crop", choices=[], validators=[Optional()])
+    currency_override = StringField(
+        "Currency override",
+        validators=[Optional(), Length(max=15)],
+    )
 
     # Area
     area_m2 = FloatField(
