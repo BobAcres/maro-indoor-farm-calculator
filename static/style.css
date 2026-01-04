@@ -454,3 +454,29 @@ button:active,
 .back-link:hover {
   text-decoration: underline;
 }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+th,
+td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+th {
+  background-color: #f5f5f5;
+}
+tr:hover {
+  background-color: #fafafa;
+}
+.negative {
+  color: #c0392b;
+  font-weight: bold;
+}
+.positive {
+  color: #27ae60;
+  font-weight: bold;
+}

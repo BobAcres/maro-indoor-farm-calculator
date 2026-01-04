@@ -8,6 +8,7 @@
       href="{{ url_for('static', filename='style.css') }}"
     />
   </head>
+
   <body>
     <div class="app-card">
       <!-- Header -->
@@ -35,35 +36,50 @@
         {% endif %}
 
         <form method="POST" action="{{ url_for('calculate') }}">
-          {{ form.hidden_tag() }}
-
-          <!-- LOCATION & CURRENCY -->
+          <!-- LOCATION -->
           <section>
-            <label> Country {{ form.country() }} </label>
-
             <label>
-              Currency override (optional, e.g. USD, CAD, NGN) {{
-              form.currency_override( placeholder="Leave blank to use country's
-              currency", class="short-input", maxlength="10" ) }}
+              Country
+              <select name="country" required>
+                <option value="">Select country</option>
+                {% for c in countries %}
+                <option value="{{ c.code }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
             </label>
           </section>
 
-          <!-- GREENHOUSE & CROP -->
+          <!-- FARM SETUP -->
           <section>
             <label>
-              Greenhouse area (m²) {{ form.area_m2(step="1",
-              class="short-input") }}
+              Greenhouse area (m²)
+              <input
+                type="number"
+                name="area_m2"
+                step="1"
+                min="1"
+                required
+                class="short-input"
+              />
             </label>
 
             <label>
-              Greenhouse level (technology) {{ form.setup_level() }}
+              Farm system type
+              <select name="system_type" required class="short-input">
+                {% for value, label in system_types %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
             </label>
 
             <label>
-              Farm system type {{ form.system_type(class="short-input") }}
+              Crop selection
+              <select name="crop" required class="short-input">
+                {% for value, label in crops %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
             </label>
-
-            <label> Crop selection {{ form.crop(class="short-input") }} </label>
           </section>
 
           <!-- OPTIONS -->
@@ -72,77 +88,68 @@
 
             <div class="checkbox-grid">
               <label class="checkbox-item">
-                <input type="checkbox" id="use_custom_production_cost" />
-                <span>Edit annual production cost</span>
+                <input type="checkbox" name="use_solar" />
+                <span>Use solar</span>
               </label>
 
               <label class="checkbox-item">
-                {{ form.use_solar() }}
-                <span>Use solar</span>
+                <input type="checkbox" id="use_custom_production_cost" />
+                <span>Edit annual production cost</span>
               </label>
 
               <label class="checkbox-item">
                 <input type="checkbox" id="use_custom_price" />
                 <span>Edit selling price</span>
               </label>
-
-              <label class="checkbox-item">
-                <input type="checkbox" id="use_custom_capex" />
-                <span>Edit setup cost per m²</span>
-              </label>
             </div>
           </section>
 
-          <!-- PRODUCTION COST & PRICE -->
+          <!-- OPTIONAL INPUTS -->
           <section>
             <div id="production_cost_block" style="display: none">
               <label>
-                Total annual production cost {{
-                form.annual_production_cost(step="0.01") }}
+                Annual production cost
+                <input
+                  type="number"
+                  name="annual_production_cost"
+                  step="0.01"
+                />
               </label>
             </div>
 
             <div id="price_block" style="display: none">
               <label>
-                Selling price per unit (kg) {{ form.price_per_unit(step="0.01")
-                }}
-              </label>
-            </div>
-          </section>
-
-          <!-- SETUP COST -->
-          <section>
-            <div id="capex_block" style="display: none">
-              <label>
-                Setup cost per m² {{ form.capex_per_m2(step="1") }}
+                Selling price per kg
+                <input type="number" name="price_per_unit" step="0.01" />
               </label>
             </div>
           </section>
 
           <div style="margin-top: 14px; text-align: center">
-            {{ form.submit(id="calcBtn") }}
+            <button type="submit" id="calcBtn">Calculate</button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Show / hide optional fields -->
+    <!-- Toggle optional fields -->
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         function bindToggle(checkboxId, blockId) {
           const cb = document.getElementById(checkboxId);
           const block = document.getElementById(blockId);
           if (!cb || !block) return;
+
           function update() {
             block.style.display = cb.checked ? "block" : "none";
           }
+
           cb.addEventListener("change", update);
           update();
         }
 
         bindToggle("use_custom_production_cost", "production_cost_block");
         bindToggle("use_custom_price", "price_block");
-        bindToggle("use_custom_capex", "capex_block");
       });
     </script>
   </body>

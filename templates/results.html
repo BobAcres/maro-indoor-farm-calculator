@@ -2,178 +2,80 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Maro – Calculation Results</title>
+    <title>Maro – Results</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
     />
   </head>
+
   <body>
     <div class="app-card">
       <!-- Header -->
       <header class="app-header">
         <div class="brand">
-          <img
-            src="{{ url_for('static', filename='palmtiny.png') }}"
-            alt="Maro logo"
-            class="brand-logo"
-          />
           <div class="brand-text">
             <div class="brand-name">Maro</div>
             <div class="brand-tagline">Indoor Farm Calculator</div>
           </div>
         </div>
-        <div class="brand-meta">
-          <span class="meta-pill">Results</span>
-        </div>
       </header>
 
-      <div class="form-body">
-        {% if results %}
+      <!-- Results -->
+      <div class="results-body">
+        <h1 class="results-title">Calculation Results</h1>
 
-        <!-- SUMMARY -->
-        <section>
-          <h2 class="section-title">Summary</h2>
+        <div class="results-grid">
+          <div class="result-item">
+            <span class="label">Country</span>
+            <span class="value">{{ results.country }}</span>
+          </div>
 
-          <ul class="result-list">
-            <li>
-              <strong>Country:</strong>
-              {{ results.country_code }}
-            </li>
-            <li>
-              <strong>Crop:</strong>
-              {{ results.crop }}
-            </li>
-            <li>
-              <strong>System type:</strong>
-              {{ results.system_type }}
-            </li>
-            <li>
-              <strong>Greenhouse area:</strong>
-              {{ results.area_m2 }} m²
-            </li>
-            <li>
-              <strong>Total plants:</strong>
-              {{ results.plants | int }}
-            </li>
-          </ul>
-        </section>
+          <div class="result-item">
+            <span class="label">Area</span>
+            <span class="value">{{ results.area_m2 }} m²</span>
+          </div>
 
-        <!-- PRODUCTION -->
-        <section>
-          <h2 class="section-title">Production</h2>
+          <div class="result-item">
+            <span class="label">Crop</span>
+            <span class="value">{{ results.crop | capitalize }}</span>
+          </div>
 
-          <ul class="result-list">
-            <li>
-              <strong>Annual yield:</strong>
-              {{ results.annual_yield_kg }} kg
-            </li>
-            <li>
-              <strong>Yield per plant:</strong>
-              {{ results.yield_per_plant_kg }} kg / plant
-            </li>
-          </ul>
-        </section>
+          <div class="result-item">
+            <span class="label">System</span>
+            <span class="value">{{ results.system_type | capitalize }}</span>
+          </div>
 
-        <!-- COSTS -->
-        <section>
-          <h2 class="section-title">Costs</h2>
+          <div class="result-item">
+            <span class="label">Plants</span>
+            <span class="value">{{ results.plants }}</span>
+          </div>
 
-          <ul class="result-list">
-            <li>
-              <strong>Gross production cost:</strong>
-              {{ results.gross_production_cost }} {{ results.currency_code }}
-            </li>
+          <div class="result-item">
+            <span class="label">Annual yield</span>
+            <span class="value">{{ results.annual_yield }} kg</span>
+          </div>
 
-            {% if results.solar_savings > 0 %}
-            <li>
-              <strong>Solar savings:</strong>
-              −{{ results.solar_savings }} {{ results.currency_code }}
-            </li>
-            {% endif %}
+          <div class="result-item highlight">
+            <span class="label">Annual profit</span>
+            <span class="value">
+              {{ results.currency_symbol }}{{ results.annual_profit }}
+            </span>
+          </div>
 
-            <li>
-              <strong>Net production cost:</strong>
-              {{ results.net_production_cost }} {{ results.currency_code }}
-            </li>
+          <div class="result-item">
+            <span class="label">Profit per plant</span>
+            <span class="value">
+              {{ results.currency_symbol }}{{ results.profit_per_plant }}
+            </span>
+          </div>
+        </div>
 
-            <li>
-              <strong>Cost per plant:</strong>
-              {{ results.cost_per_plant }} {{ results.currency_code }} / plant
-            </li>
-          </ul>
-        </section>
-
-        <!-- REVENUE -->
-        <section>
-          <h2 class="section-title">Revenue</h2>
-
-          <ul class="result-list">
-            <li>
-              <strong>Market price:</strong>
-              {{ results.price_per_kg }} {{ results.currency_code }} / kg
-            </li>
-            <li>
-              <strong>Annual revenue:</strong>
-              {{ results.annual_revenue }} {{ results.currency_code }}
-            </li>
-            <li>
-              <strong>Revenue per plant:</strong>
-              {{ results.revenue_per_plant }} {{ results.currency_code }} /
-              plant
-            </li>
-          </ul>
-        </section>
-
-        <!-- PROFIT -->
-        <section>
-          <h2 class="section-title">Profitability</h2>
-
-          <ul class="result-list">
-            <li>
-              <strong>Annual profit:</strong>
-              {{ results.annual_profit }} {{ results.currency_code }}
-            </li>
-            <li>
-              <strong>Profit per plant:</strong>
-              {{ results.profit_per_plant }} {{ results.currency_code }} / plant
-            </li>
-
-            {% if results.simple_payback_years %}
-            <li>
-              <strong>Simple payback period:</strong>
-              {{ results.simple_payback_years }} years
-            </li>
-            {% endif %}
-          </ul>
-        </section>
-
-        <!-- CAPITAL -->
-        <section>
-          <h2 class="section-title">Capital Investment</h2>
-
-          <ul class="result-list">
-            <li>
-              <strong>Total setup cost:</strong>
-              {{ results.total_setup_cost }} {{ results.currency_code }}
-            </li>
-            <li>
-              <strong>CapEx per plant:</strong>
-              {{ results.capex_per_plant }} {{ results.currency_code }} / plant
-            </li>
-          </ul>
-        </section>
-
-        <!-- ACTIONS -->
-        <section style="text-align: center; margin-top: 20px">
+        <div class="results-actions">
           <a href="{{ url_for('home') }}" class="btn-secondary">
             New calculation
           </a>
-        </section>
-
-        {% else %}
-        <p>No results available.</p>
-        {% endif %}
+        </div>
       </div>
     </div>
   </body>

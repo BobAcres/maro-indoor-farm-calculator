@@ -11,52 +11,50 @@
 
   <body>
     <div class="app-card">
+      <!-- Header -->
       <header class="app-header">
         <div class="brand">
-          <img
-            src="{{ url_for('static', filename='palmtiny.png') }}"
-            alt="Maro logo"
-            class="brand-logo"
-          />
           <div class="brand-text">
             <div class="brand-name">Maro</div>
-            <div class="brand-tagline">Calculation History</div>
+            <div class="brand-tagline">Admin – History</div>
           </div>
         </div>
       </header>
 
-      <a href="{{ url_for('home') }}" class="back-link">
-        ← Back to calculator
-      </a>
+      <div class="results-body">
+        <h1>Calculation History</h1>
 
-      <div class="history-wrapper">
-        {% if history and history|length > 0 %}
-        <table class="history-table">
+        {% if history %}
+        <table>
           <thead>
             <tr>
               <th>Date</th>
-              <th>Area (m²)</th>
-              <th>System type</th>
-              <th>Crop</th>
               <th>Country</th>
-              <th>Annual profit</th>
+              <th>Crop</th>
+              <th>System</th>
+              <th>Area (m²)</th>
+              <th>Annual Profit</th>
             </tr>
           </thead>
           <tbody>
             {% for row in history %}
             <tr>
-              <td>{{ row["created_at"] }}</td>
-              <td>{{ "%.0f"|format(row["area_m2"]) }}</td>
-              <td>{{ row["system_type"] }}</td>
-              <td>{{ row["crop"] }}</td>
-              <td>{{ row["country"] }}</td>
-              <td>{{ "%.2f"|format(row["annual_profit"]) }}</td>
+              <td>{{ row.created_at }}</td>
+              <td>{{ row.country }}</td>
+              <td>{{ row.crop | capitalize }}</td>
+              <td>{{ row.system_type | capitalize }}</td>
+              <td>{{ row.area_m2 }}</td>
+              <td
+                class="{% if row.annual_profit < 0 %}negative{% else %}positive{% endif %}"
+              >
+                {{ row.annual_profit }}
+              </td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
         {% else %}
-        <div class="history-empty">No calculations have been saved yet.</div>
+        <p>No history yet.</p>
         {% endif %}
       </div>
     </div>
