@@ -424,34 +424,38 @@ def fill_auto_economics_for_form(form_dict):
 #  Core calculation
 # =====================
 def compute_results(form):
+    # -------------------
+    # Basic inputs
+    # -------------------
     try:
         area = float(form.get("area_m2", 0) or 0)
     except ValueError:
         area = 0
 
+    if area <= 0:
+        return None, "Please fill in the greenhouse area."
+
     crop = form.get("crop", "tomato")
     system_type = form.get("system_type", "soilless")
     setup_level = form.get("setup_level", "standard")
-    use_solar = form.get("use_solar") == "on"
-    country_code = form.get("country", "") or "US"
-    currency_override = (form.get("currency_override") or "").strip()
-
-    if not area:
-        return None, "Please fill in the greenhouse area."
+    use_solar = form.get("use_solar") is True
+    country_code = form.get("country", "US")
+    currency_override = (form.get("currency_override") or "").strip().upper()
 
     country = find_country(country_code)
     base_currency_code = country["currency_code"] if country else "USD"
     base_currency_symbol = country["currency_symbol"] if country else "$"
 
-    if currency_override:
-        currency_code = currency_override.upper()
-        currency_symbol = currency_code
-    else:
-        currency_code = base_currency_code
-        currency_symbol = base_currency_symbol
+    currency_code = currency_override or base_currency_code
+    currency_symbol = currency_override or base_currency_symbol
 
-    # Crop/system/country parameters
+    fx_rate = FX_TO_USD.get(currency_code, 1.0)
+
+    # -------------------
+    # Crop parameters
+    # -------------------
     p = get_crop_params(country_code, system_type, crop)
+
     plants_per_m2 = p["plants_per_m2"]
     crops_per_year = p["crops_per_year"]
     yield_per_m2_per_crop = p["yield_per_m2_per_crop"]
@@ -459,107 +463,140 @@ def compute_results(form):
 
     plants = area * plants_per_m2
     annual_yield = area * yield_per_m2_per_crop * crops_per_year
+
     nutrient_per_crop_total = nutrient_per_m2_per_crop * area
     annual_nutrient_total = nutrient_per_crop_total * crops_per_year
     nutrient_per_plant_per_crop = (
         nutrient_per_m2_per_crop / plants_per_m2 if plants_per_m2 > 0 else 0
     )
 
-    # Price
-    price_unit = current_price_unit_for_crop(crop)
-    raw_price = (form.get("price_per_unit") or "").strip()
+    # -------------------
+    # PRICE (INPUT IS LOCAL → CONVERT TO USD)
+    # -------------------
     try:
-        price_per_unit = float(raw_price) if raw_price else 0
+        price_per_kg_local = float(form.get("price_per_unit") or 0)
     except ValueError:
-        price_per_unit = 0
+        price_per_kg_local = 0
 
-    if price_unit == "g":
-        price_per_kg = price_per_unit * 1000.0
-    else:
-        price_per_kg = price_per_unit
+    price_per_kg_usd = price_per_kg_local * fx_rate
 
-    # Production cost
-    raw_cost = (form.get("annual_production_cost") or "").strip()
+    # -------------------
+    # PRODUCTION COST (LOCAL → USD)
+    # -------------------
     try:
-        gross_production_cost = float(raw_cost) if raw_cost else 0
+        gross_cost_local = float(form.get("annual_production_cost") or 0)
     except ValueError:
-        gross_production_cost = 0
+        gross_cost_local = 0
 
-    # CAPEX per m²
-    raw_capex = (form.get("capex_per_m2") or "").strip()
+    gross_cost_usd = gross_cost_local * fx_rate
+    solar_savings_usd = gross_cost_usd * SOLAR_SAVINGS_RATE if use_solar else 0
+    net_cost_usd = gross_cost_usd - solar_savings_usd
+
+    # -------------------
+    # CAPEX (LOCAL → USD)
+    # -------------------
     try:
-        capex_per_m2 = float(raw_capex) if raw_capex else 0
+        capex_per_m2_local = float(form.get("capex_per_m2") or 0)
     except ValueError:
-        capex_per_m2 = 0
+        capex_per_m2_local = 0
 
-    # Solar savings
-    solar_savings = gross_production_cost * SOLAR_SAVINGS_RATE if use_solar else 0.0
-    net_production_cost = gross_production_cost - solar_savings
+    capex_per_m2_usd = capex_per_m2_local * fx_rate
+    total_setup_cost_usd = capex_per_m2_usd * area
 
-    # Costs & revenues
-    cost_per_kg = (net_production_cost / annual_yield) if annual_yield > 0 else None
-    annual_revenue = annual_yield * price_per_kg
-    annual_profit = annual_revenue - net_production_cost
+    # -------------------
+    # CORE ECONOMICS (USD)
+    # -------------------
+    annual_revenue_usd = annual_yield * price_per_kg_usd
+    annual_profit_usd = annual_revenue_usd - net_cost_usd
 
-    cost_per_m2_per_year = net_production_cost / area if area > 0 else 0
-    cost_per_plant_per_year = net_production_cost / plants if plants > 0 else 0
+    cost_per_kg_usd = net_cost_usd / annual_yield if annual_yield > 0 else None
+    profit_per_kg_usd = annual_profit_usd / annual_yield if annual_yield > 0 else None
 
-    profit_per_kg = (annual_profit / annual_yield) if annual_yield > 0 else None
-    profit_per_m2_per_year = annual_profit / area if area > 0 else 0
-    profit_per_plant_per_year = annual_profit / plants if plants > 0 else 0
+    simple_payback_years = (
+        total_setup_cost_usd / annual_profit_usd
+        if annual_profit_usd > 0
+        else None
+    )
 
-    revenue_per_m2_per_year = annual_revenue / area if area > 0 else 0
-    revenue_per_plant_per_year = annual_revenue / plants if plants > 0 else 0
+    # -------------------
+    # CONVERT BACK TO DISPLAY CURRENCY
+    # -------------------
+    annual_revenue = usd_to_currency(annual_revenue_usd, currency_code)
+    annual_profit = usd_to_currency(annual_profit_usd, currency_code)
+    net_production_cost = usd_to_currency(net_cost_usd, currency_code)
+    solar_savings = usd_to_currency(solar_savings_usd, currency_code)
 
-    total_setup_cost = capex_per_m2 * area
-    simple_payback_years = (total_setup_cost / annual_profit) if annual_profit > 0 else None
+    cost_per_kg = (
+        usd_to_currency(cost_per_kg_usd, currency_code)
+        if cost_per_kg_usd is not None
+        else None
+    )
+
+    profit_per_kg = (
+        usd_to_currency(profit_per_kg_usd, currency_code)
+        if profit_per_kg_usd is not None
+        else None
+    )
+
+    total_setup_cost = usd_to_currency(total_setup_cost_usd, currency_code)
 
     setup_label = SETUP_LEVEL_LABELS.get(setup_level, setup_level)
 
+    # -------------------
+    # FINAL RESULTS DICT
+    # -------------------
     results = {
         "currency_code": currency_code,
         "currency_symbol": currency_symbol,
+        "country_code": country_code,
+
+        "area": area,
+        "crop": crop,
+        "system_type": system_type,
+        "setup_level": setup_level,
+        "setup_label": setup_label,
+        "use_solar": use_solar,
+
         "plants_per_m2": plants_per_m2,
         "crops_per_year": crops_per_year,
         "yield_per_m2_per_crop": yield_per_m2_per_crop,
         "plants": plants,
         "annual_yield": annual_yield,
-        "gross_production_cost": gross_production_cost,
-        "solar_savings": solar_savings,
-        "net_production_cost": net_production_cost,
-        "cost_per_kg": cost_per_kg,
-        "cost_per_m2_per_year": cost_per_m2_per_year,
-        "cost_per_plant_per_year": cost_per_plant_per_year,
-        "price_unit": price_unit,
-        "price_per_kg": price_per_kg,
-        "price_per_unit_used": price_per_unit,
-        "annual_revenue": annual_revenue,
-        "annual_profit": annual_profit,
-        "profit_per_kg": profit_per_kg,
-        "profit_per_m2_per_year": profit_per_m2_per_year,
-        "profit_per_plant_per_year": profit_per_plant_per_year,
-        "total_setup_cost": total_setup_cost,
-        "simple_payback_years": simple_payback_years,
-        "setup_label": setup_label,
-        "capex_per_m2": capex_per_m2,
-        "setup_level": setup_level,
-        "area": area,
-        "crop": crop,
-        "system_type": system_type,
-        "use_solar": use_solar,
-        "country_code": country_code,
-        "currency_override": currency_override,
-        "SOLAR_SAVINGS_RATE": SOLAR_SAVINGS_RATE,
+
         "nutrient_per_m2_per_crop": nutrient_per_m2_per_crop,
         "nutrient_per_crop_total": nutrient_per_crop_total,
         "annual_nutrient_total": annual_nutrient_total,
         "nutrient_per_plant_per_crop": nutrient_per_plant_per_crop,
-        "revenue_per_m2_per_year": revenue_per_m2_per_year,
-        "revenue_per_plant_per_year": revenue_per_plant_per_year,
+
+        "gross_production_cost": usd_to_currency(gross_cost_usd, currency_code),
+        "solar_savings": solar_savings,
+        "net_production_cost": net_production_cost,
+
+        "price_per_kg": usd_to_currency(price_per_kg_usd, currency_code),
+
+        "annual_revenue": annual_revenue,
+        "annual_profit": annual_profit,
+
+        "cost_per_kg": cost_per_kg,
+        "profit_per_kg": profit_per_kg,
+
+        "cost_per_m2_per_year": net_production_cost / area if area > 0 else 0,
+        "profit_per_m2_per_year": annual_profit / area if area > 0 else 0,
+
+        "cost_per_plant_per_year": net_production_cost / plants if plants > 0 else 0,
+        "profit_per_plant_per_year": annual_profit / plants if plants > 0 else 0,
+
+        "revenue_per_m2_per_year": annual_revenue / area if area > 0 else 0,
+        "revenue_per_plant_per_year": annual_revenue / plants if plants > 0 else 0,
+
+        "capex_per_m2": usd_to_currency(capex_per_m2_usd, currency_code),
+        "total_setup_cost": total_setup_cost,
+        "simple_payback_years": simple_payback_years,
+
+        "SOLAR_SAVINGS_RATE": SOLAR_SAVINGS_RATE,
     }
 
     return results, None
-
 
 # =============
 #  Routes

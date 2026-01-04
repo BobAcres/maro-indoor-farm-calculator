@@ -150,8 +150,8 @@ body {
 }
 
 .brand-tagline {
-  font-size: 0.82rem;
-  letter-spacing: 0.08em;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--maro-green-soft);
 }
@@ -188,9 +188,9 @@ body {
 .section-title {
   margin-top: 6px;
   margin-bottom: 4px;
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #f9fafb;
+  color: #14f904;
 }
 
 label {
