@@ -1,6 +1,9 @@
 import sqlite3
 import datetime
 import requests
+import csv
+from io import StringIO
+from flask import Response
 from flask import (
     Flask, render_template, request, g,
     redirect, url_for, session
@@ -755,6 +758,74 @@ def admin_history_page():
         history=history,
     )
 
+@app.route("/admin/history/download")
+def admin_history_download():
+    init_db()
+    conn = get_db()
+
+    cur = conn.execute(
+        """
+        SELECT created_at,
+               country_code,
+               currency_code,
+               crop,
+               system_type,
+               area_m2,
+               annual_yield,
+               annual_revenue,
+               annual_profit
+        FROM calculations
+        ORDER BY id DESC
+        """
+    )
+    rows = cur.fetchall()
+
+    output = StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow([
+        "Date (UTC)",
+        "Country",
+        "Currency",
+        "Crop",
+        "System",
+        "Area (m2)",
+        "Annual Yield (kg)",
+        "Annual Revenue",
+        "Annual Profit",
+    ])
+
+    for r in rows:
+        writer.writerow([
+            r["created_at"],
+            r["country_code"],
+            r["currency_code"],
+            r["crop"],
+            r["system_type"],
+            f"{r['area_m2']:.0f}",
+            f"{r['annual_yield']:.0f}",
+            f"{r['annual_revenue']:.2f}",
+            f"{r['annual_profit']:.2f}",
+        ])
+
+    output.seek(0)
+
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=maro_history.csv"
+        },
+    )
+
+@app.route("/admin/history/reset", methods=["POST"])
+def admin_history_reset():
+    init_db()
+    conn = get_db()
+    conn.execute("DELETE FROM calculations")
+    conn.commit()
+
+    return redirect(url_for("admin_history_page"))
 
 if __name__ == "__main__":
     app.run(debug=False)

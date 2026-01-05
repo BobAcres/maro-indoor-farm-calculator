@@ -28,10 +28,24 @@
         </div>
       </header>
 
-      <div class="compact-row" style="margin-bottom: 10px">
-        <a href="{{ url_for('index') }}" style="font-size: 0.9rem">
-          &#8592; New calculation
+      <div
+        style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap"
+      >
+        <a
+          href="{{ url_for('admin_history_download') }}"
+          class="button-secondary"
+        >
+          ⬇ Download history (CSV)
         </a>
+
+        <form
+          method="post"
+          action="{{ url_for('admin_history_reset') }}"
+          onsubmit="return confirm('This will permanently delete ALL calculation history. Are you sure?');"
+          style="display: inline"
+        >
+          <button type="submit" class="button-danger">🗑 Reset history</button>
+        </form>
       </div>
 
       {% if history and history|length > 0 %}
